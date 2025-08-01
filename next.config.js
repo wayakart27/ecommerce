@@ -2,7 +2,7 @@
 const nextConfig = {
   // Required for NextAuth.js API routes
  experimental: {
-  serverActions: {}
+  serverActions: true
 },
   // Your existing image configuration
   images: {

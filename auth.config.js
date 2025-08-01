@@ -24,7 +24,7 @@ export const authConfig = {
 
           // Use a base URL fallback for Netlify
           const baseUrl = isProduction
-            ? "https://polite-blancmange-b543d4.netlify.app"
+            ? "https://elaborate-buttercream-c62367.netlify.app"
             : "http://localhost:3000";
 
           const response = await fetch(
