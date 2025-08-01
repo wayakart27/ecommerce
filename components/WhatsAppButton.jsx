@@ -8,7 +8,7 @@ import { FaWhatsapp } from "react-icons/fa";
 
 const WhatsAppButton = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const phoneNumber = "2348035306461";
+  const phoneNumber = "2348160126157";
   const message = "Hello! I'm interested in your products.";
 
   const openWhatsAppChat = () => {
