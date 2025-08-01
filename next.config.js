@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Required for NextAuth.js API routes
-  experimental: {
-    serverActions: true,
-  },
-  
+ experimental: {
+  serverActions: {}
+},
   // Your existing image configuration
   images: {
     remotePatterns: [
