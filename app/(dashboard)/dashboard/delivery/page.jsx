@@ -40,7 +40,7 @@ export default function ShippingConfigForm() {
   const form = useForm({
     defaultValues: {
       defaultPrice: 0,
-      defaultDeliveryDays: 2, // Default delivery days
+      defaultDeliveryDays: "2-3", // Changed to string format
       freeShippingThreshold: 0,
       statePrices: [],
       cityPrices: [],
@@ -67,7 +67,7 @@ export default function ShippingConfigForm() {
     try {
       const formData = new FormData();
       formData.append('defaultPrice', data.defaultPrice.toString());
-      formData.append('defaultDeliveryDays', data.defaultDeliveryDays.toString());
+      formData.append('defaultDeliveryDays', data.defaultDeliveryDays); // No .toString() needed
       formData.append('freeShippingThreshold', data.freeShippingThreshold?.toString() || '');
       formData.append('statePrices', JSON.stringify(data.statePrices));
       formData.append('cityPrices', JSON.stringify(data.cityPrices));
@@ -103,7 +103,7 @@ export default function ShippingConfigForm() {
       const priceData = {
         state: newStatePrice.state,
         price: Number(newStatePrice.price),
-        deliveryDays: newStatePrice.deliveryDays ? Number(newStatePrice.deliveryDays) : undefined,
+        deliveryDays: newStatePrice.deliveryDays || undefined, // Keep as string
         freeShippingThreshold: newStatePrice.freeShippingThreshold 
           ? Number(newStatePrice.freeShippingThreshold) 
           : undefined
@@ -179,7 +179,7 @@ export default function ShippingConfigForm() {
         state: newCityPrice.state,
         city: newCityPrice.city,
         price: Number(newCityPrice.price),
-        deliveryDays: newCityPrice.deliveryDays ? Number(newCityPrice.deliveryDays) : undefined,
+        deliveryDays: newCityPrice.deliveryDays || undefined, // Keep as string
         freeShippingThreshold: newCityPrice.freeShippingThreshold 
           ? Number(newCityPrice.freeShippingThreshold) 
           : undefined
@@ -297,12 +297,11 @@ export default function ShippingConfigForm() {
                 name="defaultDeliveryDays"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Default Delivery Days</FormLabel>
+                    <FormLabel>Default Delivery Days (e.g., 2-3)</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
                         {...field} 
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="e.g., 2-3"
                       />
                     </FormControl>
                     <FormMessage />
@@ -539,18 +538,17 @@ export default function ShippingConfigForm() {
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">
-                    Delivery Days (optional)
+                    Delivery Days (optional, e.g., 1-6)
                   </label>
                   <Input
-                    type="number"
                     value={newStatePrice.deliveryDays || ""}
                     onChange={(e) =>
                       setNewStatePrice({
                         ...newStatePrice,
-                        deliveryDays: e.target.value ? e.target.value : undefined,
+                        deliveryDays: e.target.value,
                       })
                     }
-                    placeholder="Leave blank for default"
+                    placeholder="e.g., 1-6 (leave blank for default)"
                   />
                 </div>
                 <div className="space-y-2">
@@ -642,18 +640,17 @@ export default function ShippingConfigForm() {
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">
-                    Delivery Days (optional)
+                    Delivery Days (optional, e.g., 1-6)
                   </label>
                   <Input
-                    type="number"
                     value={newCityPrice.deliveryDays || ""}
                     onChange={(e) =>
                       setNewCityPrice({
                         ...newCityPrice,
-                        deliveryDays: e.target.value ? e.target.value : undefined,
+                        deliveryDays: e.target.value,
                       })
                     }
-                    placeholder="Leave blank for default"
+                    placeholder="e.g., 1-6 (leave blank for default)"
                   />
                 </div>
                 <div className="space-y-2">

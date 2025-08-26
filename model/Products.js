@@ -167,8 +167,6 @@ ProductSchema.pre('save', async function (next) {
   }
 });
 
-// Indexes
-ProductSchema.index({ slug: 1 });
 ProductSchema.index({ name: 'text', description: 'text', features: 'text' });
 ProductSchema.index({ category: 1, isActive: 1, price: 1 });
 ProductSchema.index({ price: 1, discountedPrice: 1 });

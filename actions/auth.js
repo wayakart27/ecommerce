@@ -15,6 +15,9 @@ import { getPasswordResetTokenByToken, getTwoFactorConfirmationByUserId, getTwoF
 import ResetToken from '@/model/reset-password';
 import TwoFactorToken from '@/model/two-factor';
 import TwoFactorConfirmation from '@/model/two-factor-confirmation';
+import { validateReferralCode } from '@/lib/referralUtils';
+import mongoose from 'mongoose';
+import { headers } from 'next/headers';
 
 
 export const resendTwoFactorCode = async (email) => {
@@ -29,119 +32,283 @@ export const resendTwoFactorCode = async (email) => {
 };
 
 
-// Register Function
-export const register = async (values) => {
-  const validatedFields = signUpSchema.safeParse(values);
+const generateReferralCode = () => {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+};
 
+// Main registration function
+export const register = async (formData) => {
+
+  // Get client IP and user agent from headers
+  const headerList = await headers();
+  const ipAddress = headerList.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const userAgent = headerList.get('user-agent') || 'unknown';
+
+  // Validate input data
+  const validatedFields = signUpSchema.safeParse(formData);
+  
   if (!validatedFields.success) {
-    return {
-      error: 'Invalid input data.',
+    return { 
+      error: "Invalid input data",
+      details: validatedFields.error.flatten().fieldErrors 
     };
   }
 
-  const { name, email, password } = validatedFields.data;
+  const { name, email, password, referralCode } = validatedFields.data;
 
   try {
     await dbConnect();
 
-    const existingUser = await getUserByEmail(email);
+    // Check if email exists
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return {
-        error: 'Email already in use.',
-      };
+      return { error: "Email already in use." };
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Validate referral code if provided
+    let referringUser = null;
+    if (referralCode) {
+      referringUser = await User.findOne({ 
+        'referralProgram.referralCode': referralCode 
+      });
+      
+      if (!referringUser) {
+        return { error: "Invalid referral code." };
+      }
+    }
 
-    await User.create({
-      name,
-      email,
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create new user
+    const newUser = await User.create({
+      name: name.toUpperCase(),
+      email: email.toLowerCase(),
       password: hashedPassword,
+      role: 'Customer',
+      referralProgram: {
+        referralCode: generateReferralCode(),
+        ...(referringUser && { referredBy: referringUser._id }),
+      },
+      compliance: {
+        signupIp: ipAddress,
+        signupUserAgent: userAgent,
+        devices: [{
+          userAgent: userAgent,
+          ipAddress: ipAddress,
+          firstSeen: new Date(),
+          lastSeen: new Date()
+        }],
+        kycVerified: false
+      },
+      status: 'Active',
+      isVerified: false,
+      isTwoFactorEnabled: false,
+      hasMadePurchase: false
     });
 
+    // Update referrer's pending referrals if applicable
+    if (referringUser) {
+      await User.findByIdAndUpdate(
+        referringUser._id,
+        {
+          $push: {
+            'referralProgram.pendingReferrals': {
+              referee: newUser._id,
+              date: new Date(),
+              hasPurchased: false,
+              signupIp: ipAddress,
+              deviceInfo: userAgent
+            }
+          }
+        }
+      );
+    }
+
+    // Generate verification token
     const verificationToken = await generateVerificationToken(email);
-
     
-    await sendVerificationEmail(verificationToken.email, verificationToken.token)
+    // Send verification email
+    await sendVerificationEmail(verificationToken.email, verificationToken.token);
 
-    return {
-      success: 'Confirmation code sent to your email!.',
+    return { 
+      success: "Account created successfully! A confirmation email has been sent to your email.",
+      userId: newUser._id.toString(),
+      emailVerified: false
     };
+
   } catch (error) {
-    console.error('[REGISTER_ERROR]', error);
-    return {
-      error: 'Something went wrong. Please try again.',
+    console.error("[REGISTER_ERROR]", error);
+    
+    if (error.code === 11000) {
+      return { error: "This email is already registered." };
+    }
+    
+    return { 
+      error: "Account creation failed",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     };
   }
 };
 
+
 export const login = async (values, callbackUrl) => {
+  // Get client information from headers
+  const headerList = await headers();
+  const ipAddress = headerList.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const userAgent = headerList.get('user-agent') || 'unknown';
+
   // Validate input fields
   const validatedFields = loginSchema.safeParse(values);
   if (!validatedFields.success) {
-    return { error: "Invalid input data." };
+    return { 
+      error: "Invalid input data",
+      details: validatedFields.error.flatten().fieldErrors 
+    };
   }
 
   const { email, password, code } = validatedFields.data;
+  let existingUser; // Declare outside try block for catch access
 
   try {
     await dbConnect();
-    const existingUser = await getUserByEmail(email);
+    existingUser = await getUserByEmail(email.toLowerCase());
 
     // Validate user exists
-    if (!existingUser?.email || !existingUser?.password) {
-      return { error: "Invalid credentials!" };
+    if (!existingUser || !existingUser.password) {
+      // For non-existent users, use email as identifier
+      await User.updateOne(
+        { email: email.toLowerCase() },
+        {
+          $push: {
+            loginAttempts: {
+              email,
+              ipAddress,
+              userAgent,
+              status: 'invalid_credentials',
+              timestamp: new Date()
+            }
+          }
+        },
+        { upsert: true } // Create record if doesn't exist
+      );
+      return { 
+        error: "Invalid credentials",
+        code: "INVALID_CREDENTIALS" 
+      };
     }
 
     // Verify password
     const passwordsMatch = await bcrypt.compare(password, existingUser.password);
     if (!passwordsMatch) {
-      return { error: "Invalid credentials!" };
+      await User.updateOne(
+        { _id: existingUser._id },
+        {
+          $push: {
+            loginAttempts: {
+              email,
+              ipAddress,
+              userAgent,
+              status: 'invalid_password',
+              timestamp: new Date()
+            }
+          }
+        }
+      );
+      return { 
+        error: "Invalid credentials",
+        code: "INVALID_CREDENTIALS" 
+      };
     }
 
     // Check email verification
     if (!existingUser.isVerified) {
+      await User.updateOne(
+        { _id: existingUser._id },
+        {
+          $push: {
+            loginAttempts: {
+              email,
+              ipAddress,
+              userAgent,
+              status: 'unverified_email',
+              timestamp: new Date()
+            }
+          }
+        }
+      );
       const verificationToken = await generateVerificationToken(existingUser.email);
       await sendVerificationEmail(verificationToken.email, verificationToken.token);
-      return { error: "Please verify your email first. A new verification link has been sent." };
+      return { 
+        error: "Please verify your email first",
+        code: "EMAIL_NOT_VERIFIED"
+      };
     }
 
     // Handle 2FA if enabled
     if (existingUser.isTwoFactorEnabled) {
       if (code) {
-        // Verify 2FA code
         const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email);
-
-        if (!twoFactorToken) {
-          return { error: "Invalid code!" };
+        
+        if (!twoFactorToken || twoFactorToken.token !== code) {
+          await User.updateOne(
+            { _id: existingUser._id },
+            {
+              $push: {
+                loginAttempts: {
+                  email,
+                  ipAddress,
+                  userAgent,
+                  status: 'invalid_2fa',
+                  timestamp: new Date()
+                }
+              }
+            }
+          );
+          return { error: "Invalid verification code" };
         }
 
-        if (twoFactorToken.token !== code) {
-          return { error: "Invalid code!" };
+        if (new Date(twoFactorToken.expires) < new Date()) {
+          await User.updateOne(
+            { _id: existingUser._id },
+            {
+              $push: {
+                loginAttempts: {
+                  email,
+                  ipAddress,
+                  userAgent,
+                  status: 'expired_2fa',
+                  timestamp: new Date()
+                }
+              }
+            }
+          );
+          return { error: "Verification code expired" };
         }
 
-        const hasExpired = new Date(twoFactorToken.expires) < new Date();
-        if (hasExpired) {
-          return { error: "Code expired!" };
-        }
-
-        // Clean up used token
         await TwoFactorToken.deleteOne({ _id: twoFactorToken._id });
-
-        // Update confirmation
-        const existingConfirmation = await getTwoFactorConfirmationByUserId(existingUser._id);
-        if (existingConfirmation) {
-          await TwoFactorConfirmation.deleteOne({ _id: existingConfirmation._id });
-        }
-
-        await TwoFactorConfirmation.create({
-          userId: existingUser._id
-        });
+        await TwoFactorConfirmation.findOneAndUpdate(
+          { userId: existingUser._id },
+          { userId: existingUser._id },
+          { upsert: true }
+        );
       } else {
-        // Generate and send new 2FA token if no code provided
         const twoFactorToken = await generateTwoFactorToken(existingUser.email);
         await sendTwoFactorEmail(twoFactorToken.email, twoFactorToken.token);
-
+        await User.updateOne(
+          { _id: existingUser._id },
+          {
+            $push: {
+              loginAttempts: {
+                email,
+                ipAddress,
+                userAgent,
+                status: '2fa_required',
+                timestamp: new Date()
+              }
+            }
+          }
+        );
         return { 
           twoFactor: true,
           email: existingUser.email
@@ -149,7 +316,32 @@ export const login = async (values, callbackUrl) => {
       }
     }
 
-    // IMPORTANT FIX: Return the user object that matches what your Credentials provider expects
+    // Update device tracking and record successful login
+    await User.updateOne(
+      { _id: existingUser._id },
+      {
+        $push: {
+          'compliance.devices': {
+            userAgent,
+            ipAddress,
+            firstSeen: new Date(),
+            lastSeen: new Date()
+          },
+          loginAttempts: {
+            email,
+            ipAddress,
+            userAgent,
+            status: 'success',
+            timestamp: new Date()
+          }
+        },
+        $set: {
+          'compliance.lastLogin': new Date(),
+          'compliance.lastIp': ipAddress
+        }
+      }
+    );
+
     return {
       success: true,
       user: {
@@ -160,12 +352,59 @@ export const login = async (values, callbackUrl) => {
         isVerified: existingUser.isVerified,
         isTwoFactorEnabled: existingUser.isTwoFactorEnabled
       },
+      session: {
+        ipAddress,
+        userAgent,
+        loginTime: new Date().toISOString()
+      },
       redirect: callbackUrl || DEFAULT_LOGIN_REDIRECT
     };
 
   } catch (error) {
     console.error("Login error:", error);
-    return { error: "An error occurred during login. Please try again." };
+    
+    // Log error attempt if we have user context
+    if (existingUser) {
+      await User.updateOne(
+        { _id: existingUser._id },
+        {
+          $push: {
+            loginAttempts: {
+              email,
+              ipAddress,
+              userAgent,
+              status: 'error',
+              error: error.message,
+              timestamp: new Date()
+            }
+          }
+        }
+      );
+    } else {
+      // Log failed attempt for unknown users
+      await User.updateOne(
+        { email: email.toLowerCase() },
+        {
+          $push: {
+            loginAttempts: {
+              email,
+              ipAddress,
+              userAgent,
+              status: 'error',
+              error: error.message,
+              timestamp: new Date()
+            }
+          }
+        },
+        { upsert: true }
+      );
+    }
+    
+    return { 
+      error: "Login failed",
+      code: "LOGIN_ERROR",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    };
   }
 };
 

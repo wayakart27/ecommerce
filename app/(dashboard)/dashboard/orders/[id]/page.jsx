@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/select";
 import { getOrderAndShippingById, updateOrderStatusWithTracking } from "@/actions/order";
 import { Skeleton } from "@/components/ui/skeleton";
-import Image from "next/image";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -67,6 +66,15 @@ export default function OrderDetailsPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
+  }
+
+  // Format date for display
+  function formatDate(date) {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   }
 
   // Fetch order details
@@ -477,30 +485,48 @@ export default function OrderDetailsPage() {
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Shipping Method</div>
+                <div className="text-sm text-muted-foreground">Shipping Information</div>
                 <div className="font-medium">
                   {order.shippingCarrier || "Standard Shipping"}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Tracking: {order.trackingId || "Not available"}
                 </div>
+                
+                {/* Delivery Date Information */}
+                {order.deliveryDateRange && order.isPaid && (
+                  <div className="mt-2">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-1 text-primary" />
+                      <span className="font-medium">Expected Delivery:</span>
+                    </div>
+                    {order.deliveryDateRange.isRange ? (
+                      <div className="text-sm">
+                        {formatDate(order.deliveryDateRange.from)} - {formatDate(order.deliveryDateRange.to)}
+                      </div>
+                    ) : (
+                      <div className="text-sm">
+                        {formatDate(order.deliveryDateRange.from)}
+                      </div>
+                    )}
+                    {order.expectedDeliveryDays && (
+                      <div className="text-xs text-muted-foreground">
+                        ({order.expectedDeliveryDays} business days)
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {order.deliveredAt && (
-                  <div className="text-sm text-muted-foreground">
-                    Delivered: {new Date(order.deliveredAt).toLocaleDateString()}
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Delivered: {formatDate(order.deliveredAt)}
                   </div>
                 )}
                 {order.isOrderReceived && order.orderReceivedAt && (
                   <div className="text-sm text-muted-foreground">
-                    Received: {new Date(order.orderReceivedAt).toLocaleDateString()}
+                    Received: {formatDate(order.orderReceivedAt)}
                   </div>
                 )}
-                 {order.deliveryDate && (
-                                <p className="mb-2 flex items-center">
-                                  <Calendar className="h-4 w-4 mr-2 text-primary" />
-                                  <span className="font-bold">Expected Delivery: </span>
-                                  <span className="ml-1 font-bold">{new Date(order.deliveryDate).toLocaleDateString()}</span>
-                                </p>
-                              )}
               </div>
             </div>
             <Separator />

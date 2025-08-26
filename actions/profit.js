@@ -2,6 +2,7 @@
 "use server";
 
 import dbConnect from "@/lib/mongodb";
+import Category from "@/model/Category";
 import { Order } from "@/model/Order";
 import Products from "@/model/Products";
 

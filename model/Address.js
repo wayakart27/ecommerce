@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Shipping from "./Shipping";
 
 const addressSchema = new mongoose.Schema({
   user: {
@@ -47,7 +48,12 @@ const addressSchema = new mongoose.Schema({
     type: String,
     enum: ['home', 'work', 'other'],
     default: 'home'
-  }
+  },
+  shipping: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shipping',
+    default: null
+  },
 }, {
   timestamps: true
 });
@@ -63,4 +69,4 @@ addressSchema.pre('save', async function(next) {
   next();
 });
 
-export const Address = mongoose.models.Address|| mongoose.model('Address', addressSchema);
+export const Address = mongoose.models.Address || mongoose.model('Address', addressSchema);

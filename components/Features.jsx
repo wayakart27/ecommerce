@@ -1,64 +1,151 @@
-import { Shield, Truck, Headphones, Cpu, Smartphone, Laptop, Star } from "lucide-react";
+'use client';
+
+import { Shield, Truck, Headphones, Star, Zap, CheckCircle, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
   {
     id: 1,
     title: "Premium Devices",
     description: "Only genuine, high-quality phones, laptops, and accessories from top brands.",
-    icon: <Star className="h-8 w-8 text-blue-500" />,
+    icon: <Star className="h-6 w-6 text-blue-600" />,
+    color: "from-blue-500 to-blue-600",
+    bgColor: "bg-blue-50",
+    hoverColor: "hover:bg-blue-100",
+    details: ["Genuine products", "Top brands", "Quality assurance"]
   },
   {
     id: 2,
     title: "Secure Payments",
     description: "Shop with confidence using our secure payment options and encryption.",
-    icon: <Shield className="h-8 w-8 text-blue-500" />,
+    icon: <Shield className="h-6 w-6 text-green-600" />,
+    color: "from-green-500 to-green-600",
+    bgColor: "bg-green-50",
+    hoverColor: "hover:bg-green-100",
+    details: ["SSL encryption", "Paystack payment", "Secure checkout"]
   },
   {
     id: 3,
     title: "Fast Delivery",
-    description: "Quick shipping with reliable courier partners.",
-    icon: <Truck className="h-8 w-8 text-blue-500" />,
+    description: "Quick shipping across Northen  Nigeria.",
+    icon: <Truck className="h-6 w-6 text-orange-600" />,
+    color: "from-orange-500 to-orange-600",
+    bgColor: "bg-orange-50",
+    hoverColor: "hover:bg-orange-100",
+    details: ["Northern states delivery", "Fast processing", "Tracking available"]
   },
   {
     id: 4,
     title: "Tech Support",
     description: "Dedicated customer support for all your technical questions.",
-    icon: <Headphones className="h-8 w-8 text-blue-500" />,
+    icon: <Headphones className="h-6 w-6 text-purple-600" />,
+    color: "from-purple-500 to-purple-600",
+    bgColor: "bg-purple-50",
+    hoverColor: "hover:bg-purple-100",
+    details: ["24/7 support", "Technical assistance", "Warranty support"]
   },
 ];
 
 const Features = () => {
   return (
-    <section id="features" className="py-20 bg-gradient-to-b from-gray-50 to-white">
-      <div className="container px-4 md:px-6">
-        <h2 className="text-4xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">
-            Why Choose Wayakart
+    <section id="features" className="py-20 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-200 rounded-full translate-x-1/3 translate-y-1/3 opacity-20"></div>
+      
+      <div className="container px-4 md:px-6 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full mb-4">
+            <Zap className="h-4 w-4" />
+            <span className="text-sm font-medium">Why Choose Us</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+            Experience the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Wayakart</span> Difference
           </h2>
-       
-        <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-          Your trusted destination for premium electronics and exceptional service
-        </p>
+          <p className="text-gray-600 text-lg">
+            Your trusted destination for premium electronics and exceptional service
+          </p>
+        </motion.div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature) => (
-            <div 
-              key={feature.id} 
-              className="bg-white hover:bg-gray-50 transition-all duration-300 rounded-xl p-8 border border-gray-200 hover:border-blue-300 group shadow-sm hover:shadow-md"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {features.map((feature, index) => (
+            <motion.div
+              key={feature.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              className="group relative"
             >
-              <div className="flex flex-col items-center text-center">
-                <div className="p-4 mb-4 rounded-full bg-blue-50 group-hover:bg-blue-100 transition-all duration-300">
-                  {feature.icon}
+              <div className={`bg-white rounded-2xl p-6 border border-gray-200 hover:border-transparent transition-all duration-300 h-full flex flex-col shadow-sm hover:shadow-xl ${feature.hoverColor}`}>
+                {/* Icon with gradient background */}
+                <div className={`mb-6 w-14 h-14 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300`}>
+                  <div className="text-white">
+                    {feature.icon}
+                  </div>
                 </div>
-                <h3 className="text-xl font-medium text-gray-800 mb-2">
+                
+                {/* Title */}
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-gray-800 transition-colors">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600">
+                
+                {/* Description */}
+                <p className="text-gray-600 mb-4 flex-1">
                   {feature.description}
                 </p>
+                
+                {/* Feature details */}
+                <div className="space-y-2 mb-6">
+                  {feature.details.map((detail, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-gray-600">{detail}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Learn more link */}
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors mt-auto">
+                  <span>Learn more</span>
+                  <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+                
+                {/* Hover effect border */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300 -z-10`}></div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
+
+        {/* Stats section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-12 border-t border-gray-200"
+        >
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">500+</div>
+            <div className="text-gray-600 text-sm md:text-base">Happy Customers</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">4.9/5</div>
+            <div className="text-gray-600 text-sm md:text-base">Customer Rating</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">24/7</div>
+            <div className="text-gray-600 text-sm md:text-base">Support Available</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">100%</div>
+            <div className="text-gray-600 text-sm md:text-base">Genuine Products</div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

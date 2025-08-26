@@ -30,7 +30,11 @@ export const adminRoutes = [
   '/dashboard/delivery/*',
   '/dashboard/profit',
   '/dashboard/profit/*',
+  '/dashboard/revenue',
   '/dashboard/users',
+  '/dashboard/payout',
+  '/dashboard/userDetails',
+  '/dashboard/referrals',
   '/dashboard/users/*',
   '/dashboard/new-arrivals',
   '/dashboard/new-arrivals/*',
@@ -46,6 +50,7 @@ export const userRoutes = [
 export const customerRoutes = [
   '/dashboard/my-order',
   '/dashboard/my-order/*',
+  '/dashboard/my-referral',
   '/dashboard/settings',
 ];
 

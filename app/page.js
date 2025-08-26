@@ -6,6 +6,7 @@ import StoreLocation from "@/components/StoreLocation";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import Features from "@/components/Features";
+import { ReferralPopup } from "@/components/ReferralPopup";
 
 export default function Home() {
   return (
@@ -18,6 +19,9 @@ export default function Home() {
       <StoreLocation />
       <Footer />
       <WhatsAppButton />
+      
+      {/* Add the popup near root but not within any scrolling containers */}
+      <ReferralPopup />
     </div>
   );
 }

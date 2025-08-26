@@ -24,6 +24,12 @@ import {
   Loader2,
   CurrencyIcon,
   SheetIcon,
+  Gift,
+  GiftIcon,
+  UserIcon,
+  LucideCurrency,
+  Currency,
+  GitFork,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -92,6 +98,10 @@ export default function DashboardLayout({ children }) {
     { title: "Delivery Cost", href: "/dashboard/delivery", icon: TruckIcon },
     { title: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
     { title: "Profit", href: "/dashboard/profit", icon: CurrencyIcon },
+    { title: "Revenue", href: "/dashboard/revenue", icon: GitFork },
+    { title: "Referrals", href: "/dashboard/referrals", icon: GiftIcon },
+    { title: "Payout", href: "/dashboard/payout", icon: Currency },
+    { title: "User Referral Details", href: "/dashboard/userDetails", icon: UserIcon },
     { title: "Customers", href: "/dashboard/users", icon: User },
     { title: "New Arrivals", href: "/dashboard/new-arrivals", icon: SheetIcon },
     { title: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -106,6 +116,7 @@ export default function DashboardLayout({ children }) {
   const customerNavItems = [
     { title: "Dashboard", href: "/dashboard", icon: Home, exact: true },
     { title: "My Orders", href: "/dashboard/my-order", icon: Box },
+    { title: "Referral Bonus", href: "/dashboard/my-referral", icon: Gift },
     { title: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 

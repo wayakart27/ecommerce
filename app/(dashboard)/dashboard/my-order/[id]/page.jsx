@@ -11,13 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function OrderDetailsPage() {
   const params = useParams();
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deliveryDateRange, setDeliveryDateRange] = useState(null);
   const orderId = params?.orderId || params?.id;
 
   function formatNaira(amount) {
@@ -32,7 +32,8 @@ export default function OrderDetailsPage() {
   function formatDate(dateString) {
     if (!dateString) return "N/A";
     
-    const date = new Date(dateString);
+    // Handle both string dates and Date objects
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -40,6 +41,73 @@ export default function OrderDetailsPage() {
       day: 'numeric'
     });
   }
+
+  // Function to calculate delivery date range from order data
+  const calculateDeliveryDateRange = (orderData) => {
+    if (!orderData) return null;
+    
+    // First try to use the deliveryDateRange from server
+    if (orderData.deliveryDateRange) {
+      return {
+        from: formatDate(orderData.deliveryDateRange.from),
+        to: orderData.deliveryDateRange.to ? formatDate(orderData.deliveryDateRange.to) : null,
+        isRange: orderData.deliveryDateRange.isRange,
+        source: 'server'
+      };
+    }
+    
+    // If no deliveryDateRange, try to use estimatedDeliveryDate
+    if (orderData.estimatedDeliveryDate && orderData.paidAt) {
+      return {
+        from: formatDate(orderData.estimatedDeliveryDate),
+        to: null,
+        isRange: false,
+        source: 'estimated'
+      };
+    }
+    
+    // If no estimated date, try to use expectedDeliveryDays
+    if (orderData.expectedDeliveryDays && orderData.paidAt) {
+      const paidDate = new Date(orderData.paidAt);
+      const startDate = new Date(paidDate);
+      const endDate = new Date(paidDate);
+      
+      // Extract the day range from the string (e.g., "1-3" or "1")
+      if (orderData.expectedDeliveryDays.includes('-')) {
+        const daysMatch = orderData.expectedDeliveryDays.match(/(\d+)-(\d+)/);
+        
+        if (daysMatch) {
+          const minDays = parseInt(daysMatch[1]);
+          const maxDays = parseInt(daysMatch[2]);
+          
+          startDate.setDate(paidDate.getDate() + minDays);
+          endDate.setDate(paidDate.getDate() + maxDays);
+          
+          return {
+            from: formatDate(startDate),
+            to: formatDate(endDate),
+            isRange: true,
+            source: 'calculated'
+          };
+        }
+      } else {
+        const days = parseInt(orderData.expectedDeliveryDays);
+        
+        if (!isNaN(days)) {
+          startDate.setDate(paidDate.getDate() + days);
+          
+          return {
+            from: formatDate(startDate),
+            to: null,
+            isRange: false,
+            source: 'calculated'
+          };
+        }
+      }
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -49,6 +117,12 @@ export default function OrderDetailsPage() {
 
         if (result.success) {
           setOrder(result.data);
+
+          console.log(result.data)
+          
+          // Calculate delivery date range from order data
+          const formattedDateRange = calculateDeliveryDateRange(result.data);
+          setDeliveryDateRange(formattedDateRange);
         } else {
           setError(result.message || "Order not found");
         }
@@ -64,7 +138,7 @@ export default function OrderDetailsPage() {
     }
   }, [orderId]);
 
-  // Loading skeleton
+  // Loading skeleton (unchanged)
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -152,7 +226,7 @@ export default function OrderDetailsPage() {
     );
   }
 
-  // Error state
+  // Error state (unchanged)
   if (error) {
     return (
       <div className="container mx-auto px-4 py-16 text-center max-w-md">
@@ -168,7 +242,7 @@ export default function OrderDetailsPage() {
     );
   }
 
-  // Empty state
+  // Empty state (unchanged)
   if (!order) {
     return (
       <div className="container mx-auto px-4 py-16 text-center max-w-md">
@@ -186,7 +260,7 @@ export default function OrderDetailsPage() {
     );
   }
 
-  // Prepare timeline data
+  // Prepare timeline data (unchanged)
   const getStatusDetails = (status) => {
     const statusLower = status.toLowerCase();
     
@@ -449,13 +523,20 @@ export default function OrderDetailsPage() {
               </p>
             </div>
             <div className="border-t pt-4 space-y-2">
-              {/* Use server-provided delivery date */}
-              {order.deliveryDate && (
-                <p className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" />
-                  <span className="font-bold">Expected Delivery: </span>
-                  <span className="ml-1 font-bold">{formatDate(order.deliveryDate)}</span>
-                </p>
+              {/* Delivery date range */}
+              {deliveryDateRange && (
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <Calendar className="h-4 w-4 text-primary shrink-0 mt-1" />
+                  <div className="flex flex-col">
+                    <span className="font-bold">Expected Delivery:</span>
+                    <span className="text-sm sm:text-base">
+                      {deliveryDateRange.isRange 
+                        ? `${deliveryDateRange.from} to ${deliveryDateRange.to}`
+                        : deliveryDateRange.from
+                      }
+                    </span>
+                  </div>
+                </div>
               )}
               <p>
                 <span className="font-medium">Carrier:</span> {order.shippingCarrier || 'N/A'}

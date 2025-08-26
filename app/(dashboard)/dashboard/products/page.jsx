@@ -301,7 +301,7 @@ export default function ProductsPage() {
                         }).format(product.discountedPrice || 0)}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {product?.stockQuantity || 0}
+                        {product?.stock || 0}
                       </TableCell>
                       <TableCell>
                         <Badge

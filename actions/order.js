@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { sendOrderStatusEmail } from "@/lib/mail";
 import Shipping from "@/model/Shipping";
 import dbConnect from "@/lib/mongodb";
+import ReferralPayoutSettings from "@/model/ReferralPayoutSettings";
 
 // Recursive sanitizer for complete serialization
 const sanitizeForClient = (data) => {
@@ -46,13 +47,121 @@ const sanitizeForClient = (data) => {
   return data;
 };
 
+// --- helpers: safe add-days and normalizer ---
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const addDays = (date, days) => new Date(date.getTime() + days * ONE_DAY_MS);
+const norm = (v) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+
+// Calculate delivery days helper (returns "2" or "2-3")
+const calculateDeliveryDate = async (order) => {
+  // Only compute if we have the essentials
+  if (!order || !order.isPaid || !order.paidAt || !order.shippingAddress) {
+    return null;
+  }
+
+  try {
+    // Get shipping configuration (prefer a single default doc if you have a flag)
+    const defaultShipping = await Shipping.findOne({ isDefault: true }) || await Shipping.findOne({});
+
+    // Fallbacks if config is missing
+    if (!defaultShipping) {
+      console.error("No shipping configuration found — falling back to 2-3 days.");
+      return "2-3"; // fallback numeric string
+    }
+
+    // Default delivery days from config (string like "2-3 days" or "2 days")
+    let deliveryDays = defaultShipping.defaultDeliveryDays || "2-3 days";
+
+    // Resolve address object (handle ObjectId / populated)
+    let address = order.shippingAddress;
+    if (address && typeof address === "string" && mongoose.Types.ObjectId.isValid(address)) {
+      address = await Address.findById(address);
+    } else if (!address || typeof address !== "object") {
+      console.error("Invalid address format");
+      // still provide a sane default
+      return "2-3";
+    }
+
+    const state = norm(address?.state);
+    const city = norm(address?.city);
+
+    // City-based override
+    if (city && state && Array.isArray(defaultShipping.cityPrices)) {
+      const cityMatch = defaultShipping.cityPrices.find((item) => {
+        const iCity = norm(item?.city);
+        const iState = norm(item?.state);
+        return iCity && iState && iCity === city && iState === state && item?.deliveryDays;
+      });
+      if (cityMatch?.deliveryDays) deliveryDays = cityMatch.deliveryDays;
+    }
+
+    // State-based override
+    if (state && Array.isArray(defaultShipping.statePrices)) {
+      const stateMatch = defaultShipping.statePrices.find((item) => {
+        const iState = norm(item?.state);
+        return iState && iState === state && item?.deliveryDays;
+      });
+      if (stateMatch?.deliveryDays) deliveryDays = stateMatch.deliveryDays;
+    }
+
+    // Normalize to numeric string only: "2-3 days" -> "2-3", "2 days" -> "2"
+    const m = String(deliveryDays).match(/(\d+)(?:-(\d+))?/);
+    if (!m) {
+      // if config value is weird, fall back
+      return "2-3";
+    }
+
+    const minStr = m[1];
+    const maxStr = m[2];
+    return maxStr ? `${minStr}-${maxStr}` : `${minStr}`;
+  } catch (error) {
+    console.error("Delivery calculation failed:", error);
+    return "2-3"; // safe fallback to keep the flow working
+  }
+};
+
+// Calculate a date range from paidAt + "2-3" (or "2")
+const calculateDateRangeFromDeliveryDays = (paidDate, deliveryDays) => {
+  if (!paidDate || !deliveryDays) return null;
+
+  const paid = new Date(paidDate);
+  if (isNaN(paid.getTime())) return null;
+
+  // Accept "2-3", "2", or even "2-3 days" / "2 days"
+  const match = String(deliveryDays).match(/(\d+)(?:-(\d+))?/);
+  if (!match) return null;
+
+  const minDays = parseInt(match[1], 10);
+  const maxDays = match[2] ? parseInt(match[2], 10) : null;
+
+  if (!isFinite(minDays)) return null;
+
+  if (isFinite(maxDays)) {
+    // range
+    return {
+      from: addDays(paid, minDays),
+      to: addDays(paid, maxDays),
+      isRange: true,
+      deliveryDaysString: `${minDays}-${maxDays}`,
+    };
+  } else {
+    // single day
+    return {
+      from: addDays(paid, minDays),
+      to: null,
+      isRange: false,
+      deliveryDaysString: `${minDays}`,
+    };
+  }
+};
+
 export const createOrder = async (orderData) => {
   try {
     await dbConnect();
 
     const {
       userId,
-      shippingAddressId,
+      shippingAddressId, // This is the address ID from the address collection
       orderItems,
       itemsPrice,
       shippingPrice,
@@ -64,12 +173,27 @@ export const createOrder = async (orderData) => {
       _id: shippingAddressId,
       user: userId,
     });
+    
     if (!address) {
       return {
         success: false,
         error: "Invalid shipping address",
       };
     }
+
+    // Convert the address document to embedded format
+    const embeddedAddress = {
+      firstName: address.firstName,
+      lastName: address.lastName,
+      email: address.email,
+      phone: address.phone,
+      address: address.address,
+      city: address.city,
+      state: address.state,
+      country: address.country,
+      postalCode: '', // Your address model doesn't have postalCode, so set default
+      additionalInfo: '' // Your address model doesn't have additionalInfo, so set default
+    };
 
     // Validate products and prepare order items
     const itemsWithProduct = await Promise.all(
@@ -86,10 +210,10 @@ export const createOrder = async (orderData) => {
       })
     );
 
-    // Create new order
+    // Create new order with embedded shipping address
     const newOrder = new Order({
       user: userId,
-      shippingAddress: shippingAddressId,
+      shippingAddress: embeddedAddress, // Use the embedded address object
       orderItems: itemsWithProduct,
       paymentMethod: "paystack",
       itemsPrice,
@@ -115,15 +239,17 @@ export const createOrder = async (orderData) => {
 };
 
 export const verifyPaystackPayment = async (orderId, reference) => {
-  console.log(orderId, reference);
-
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     await dbConnect();
 
-    const order = await Order.findById(orderId).session(session);
+    // 1. Fetch and validate order
+    const order = await Order.findById(orderId)
+      .populate("orderItems.product")
+      .session(session);
+
     if (!order) {
       await session.abortTransaction();
       return { success: false, message: "Order not found" };
@@ -131,177 +257,201 @@ export const verifyPaystackPayment = async (orderId, reference) => {
 
     if (order.isPaid) {
       await session.abortTransaction();
-      return { success: true, message: "Order already paid" };
+      return {
+        success: true,
+        message: "Order already paid",
+        data: {
+          orderId: order._id,
+          status: order.status,
+        },
+      };
     }
 
-    // Verify payment with Paystack API
+    // 2. Verify payment with Paystack API
     const response = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(
-        reference
-      )}`,
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
       }
     );
 
     if (!response.ok) {
       const errorJson = await response.json();
-      console.error(
-        `Paystack API error: ${response.status} - ${errorJson.message}`
-      );
       await session.abortTransaction();
       return {
         success: false,
         error: errorJson.message || `Paystack API error: ${response.status}`,
+        reference,
       };
     }
 
     const paymentData = await response.json();
-
-    if (!paymentData.status) {
-      const errorMsg = paymentData.message || "Payment verification failed";
-      await session.abortTransaction();
-      return {
-        success: false,
-        error: errorMsg,
-        detail: paymentData.data?.gateway_response || "No additional info",
-      };
-    }
-
     const transactionData = paymentData.data;
 
-    if (transactionData.status !== "success") {
-      const errorMsg = `Transaction status: ${transactionData.status}`;
-      console.error("Payment verification error:", errorMsg);
+    if (!paymentData.status || transactionData.status !== "success") {
       await session.abortTransaction();
       return {
         success: false,
-        error: errorMsg,
-        detail: transactionData.gateway_response || "No additional info",
+        error: paymentData.message || "Payment verification failed",
+        reference,
+        status: transactionData?.status,
       };
     }
 
-    // Extract orderId from Paystack metadata
-    let paystackOrderId = null;
-    const metadata = transactionData.metadata || {};
-
-    if (metadata.order_id) {
-      paystackOrderId = metadata.order_id;
-    } else if (Array.isArray(metadata.custom_fields)) {
-      const orderIdField = metadata.custom_fields.find(
-        (field) => field.variable_name === "order_id"
-      );
-      if (orderIdField) paystackOrderId = orderIdField.value;
-    } else if (metadata.custom_fields?.order_id) {
-      paystackOrderId = metadata.custom_fields.order_id;
-    }
-
-    if (paystackOrderId && paystackOrderId !== orderId) {
-      console.error(
-        `OrderId mismatch. Expected: ${orderId}, Paystack: ${paystackOrderId}`
-      );
-      await session.abortTransaction();
-      return {
-        success: false,
-        error: "OrderId mismatch. Payment verification failed.",
-      };
-    }
-
-    // Validate payment amount
+    // 3. Validate payment details
     const paidAmount = transactionData.amount / 100;
     const orderAmount = order.totalPrice;
 
     if (Math.abs(paidAmount - orderAmount) > 0.01) {
-      console.error(
-        `Payment amount mismatch. Expected ${orderAmount}, received ${paidAmount}`
-      );
       await session.abortTransaction();
       return {
         success: false,
-        error: `Payment amount mismatch. Expected ${orderAmount}, received ${paidAmount}`,
+        error: `Payment amount mismatch. Expected ₦${orderAmount.toFixed(2)}, received ₦${paidAmount.toFixed(2)}`,
+        expectedAmount: orderAmount,
+        paidAmount,
       };
     }
 
-    // Security check for transaction ID
-    const isPendingState = order.transactionId.startsWith("pending-");
-    const isSameReference = order.transactionId === reference;
-
-    if (!isPendingState && !isSameReference) {
-      console.error(
-        `Transaction ID mismatch. Order: ${order.transactionId}, Paystack: ${reference}`
-      );
-      await session.abortTransaction();
-      return {
-        success: false,
-        error: "Transaction ID mismatch. Possible duplicate payment attempt",
-      };
-    }
-
-    // CRITICAL: Update product stock quantities
+    // 4. Update product stock and validate inventory
     for (const item of order.orderItems) {
-      const product = await Products.findById(item.product).session(session);
+      const product = item.product;
 
-      if (!product) {
-        console.error(`Product not found: ${item.product}`);
+      if (!product || product.stock < item.quantity) {
         await session.abortTransaction();
         return {
           success: false,
-          error: `Product ${item.name || item.product} not found`,
+          error: product
+            ? `Insufficient stock for ${product.name}. Available: ${product.stock}`
+            : "Product not found",
+          productId: item.product,
         };
       }
 
-      // Validate sufficient stock
-      if (product.stock < item.quantity) {
-        console.error(
-          `Insufficient stock for ${product.name}. Requested: ${item.quantity}, Available: ${product.stock}`
-        );
-        await session.abortTransaction();
-        return {
-          success: false,
-          error: `Insufficient stock for ${product.name}. Only ${product.stock} available`,
-        };
-      }
-
-      // Update stock
       product.stock -= item.quantity;
+      product.sold += item.quantity;
       await product.save({ session });
     }
 
-    // Update order status
+    // 5. Process referral if applicable
+    if (order.user) {
+      const user = await User.findById(order.user).session(session);
+
+      if (user?.referralProgram?.referredBy && !user.hasMadePurchase) {
+        // Get referral payout settings
+        const payoutSettings = await ReferralPayoutSettings.findOne({}).session(session);
+        const referralPercentage = payoutSettings?.referralPercentage || 1.5;
+        
+        const referrer = await User.findById(user.referralProgram.referredBy).session(session);
+
+        if (referrer) {
+          // Calculate bonus based on referral percentage
+          const bonusPercentage = referralPercentage / 100;
+          const bonusAmount = order.totalPrice * bonusPercentage;
+
+          // Update referrer's account
+          await User.findByIdAndUpdate(
+            referrer._id,
+            {
+              $pull: {
+                "referralProgram.pendingReferrals": {
+                  referee: user._id,
+                },
+              },
+              $push: {
+                "referralProgram.completedReferrals": {
+                  referee: user._id,
+                  order: order._id,
+                  amount: bonusAmount,
+                  date: new Date(),
+                  status: 'pending'
+                },
+              },
+              $inc: {
+                "referralProgram.referralEarnings": bonusAmount,
+              },
+            },
+            { session }
+          );
+
+          // Mark user as having made a purchase
+          user.hasMadePurchase = true;
+          user.firstPurchaseDate = new Date();
+          await user.save({ session });
+
+          // Add to order metadata
+          order.referralBonus = {
+            referrer: referrer._id,
+            amount: bonusAmount,
+            percentage: referralPercentage,
+            processedAt: new Date(),
+          };
+          
+          // Mark order as referral order
+          order.isReferral = true;
+        }
+      }
+    }
+
+    // 6. Update order status with simplified payment details
     order.transactionId = reference;
     order.isPaid = true;
-    order.paidAt = new Date(transactionData.paid_at || transactionData.paidAt);
+    order.paidAt = new Date(transactionData.paid_at || Date.now());
+    order.paymentMethod = "paystack";
+    
+    // Updated payment details structure
+    order.paymentDetails = {
+      channel: transactionData.channel,
+      bank: transactionData.authorization?.bank,
+      cardType: transactionData.authorization?.card_type,
+      authorizationCode: transactionData.authorization?.authorization_code,
+      last4: transactionData.authorization?.last4
+    };
+    
     order.status = "processing";
-
-    // Add processing status to statusTrack
     order.statusTrack.push({
       status: "processing",
       date: new Date(),
+      note: "Payment verified successfully",
     });
 
     await order.save({ session });
 
-    // Commit all changes
+    // 7. Commit transaction
     await session.commitTransaction();
 
     return {
       success: true,
-      data: sanitizeForClient(order),
-      message: "Payment verified successfully",
+      data: {
+        orderId: order._id,
+        amount: order.totalPrice,
+        paidAt: order.paidAt,
+        status: order.status,
+        reference,
+        paymentChannel: transactionData.channel,
+        items: order.orderItems.map((item) => ({
+          product: item.product.name,
+          quantity: item.quantity,
+        })),
+      },
+      message: "Payment verified and order processed successfully",
     };
   } catch (error) {
-    console.error("Payment verification error:", error);
     await session.abortTransaction();
+    console.error("Payment verification error:", error);
     return {
       success: false,
       message: error.message || "Failed to verify payment",
+      reference,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     };
   } finally {
     session.endSession();
   }
 };
+
 export const getOrderById = async (orderId) => {
   try {
     await dbConnect();
@@ -339,8 +489,11 @@ export const getOrdersByUserId = async (userId) => {
   try {
     await dbConnect();
 
-    // Find all orders for the user and sort by creation date descending (newest first)
-    const orders = await Order.find({ user: userId })
+    // Find all PAID orders for the user and sort by creation date descending (newest first)
+    const orders = await Order.find({ 
+      user: userId,
+      isPaid: true // Only include paid orders
+    })
       .sort({ createdAt: -1 }) // Sort by date descending
       .populate({
         path: "user",
@@ -350,7 +503,7 @@ export const getOrdersByUserId = async (userId) => {
 
     return {
       success: true,
-      data: orders.map((order) => sanitizeForClient(order)),
+      data: sanitizeForClient(orders),
       message: "Orders retrieved successfully",
     };
   } catch (error) {
@@ -672,86 +825,13 @@ export const updateOrderStatusWithTracking = async (
   }
 };
 
-// Calculate delivery date helper
-const calculateDeliveryDate = async (order) => {
-  // Skip calculation for terminal statuses
-  if (
-    ["shipped", "delivered", "cancelled", "refunded"].includes(order.status)
-  ) {
-    return null;
-  }
-
-  // Validate required fields
-  if (!order.shippingAddress || !order.isPaid || !order.paidAt) {
-    return null;
-  }
-
-  try {
-    // Get shipping configuration
-    const shippingConfigs = await Shipping.find({});
-    const defaultShipping = shippingConfigs[0];
-
-    if (!defaultShipping) {
-      console.error("No shipping configuration found");
-      return null;
-    }
-
-    const paidDate = new Date(order.paidAt);
-    let deliveryDays = defaultShipping.defaultDeliveryDays || 6;
-
-    // Get address details
-    let address = order.shippingAddress;
-    // Handle both ObjectID and populated address
-    if (mongoose.Types.ObjectId.isValid(address)) {
-      address = await Address.findById(address);
-    } else if (address && typeof address === "object") {
-      // Already populated, use as is
-    } else {
-      console.error("Invalid address format");
-      return null;
-    }
-
-    const state = address?.state;
-    const city = address?.city;
-
-    // City-based delivery days
-    if (city && state && defaultShipping.cityPrices) {
-      const cityMatch = defaultShipping.cityPrices.find(
-        (item) =>
-          item.city === city && item.state === state && item.deliveryDays
-      );
-      if (cityMatch) deliveryDays = cityMatch.deliveryDays;
-    }
-
-    // State-based delivery days
-    if (state && defaultShipping.statePrices) {
-      const stateMatch = defaultShipping.statePrices.find(
-        (item) => item.state === state && item.deliveryDays
-      );
-      if (stateMatch) deliveryDays = stateMatch.deliveryDays;
-    }
-
-    // Calculate final date
-    const deliveryDate = new Date(paidDate);
-    deliveryDate.setDate(paidDate.getDate() + deliveryDays);
-    return deliveryDate;
-  } catch (error) {
-    console.error("Delivery calculation failed:", error);
-    return null;
-  }
-};
-
-// Get order by ID with shipping details
+// Get order by ID with shipping details (always compute from paidAt)
 export const getOrderAndShippingById = async (orderId) => {
   try {
     await dbConnect();
 
-    // Fetch order with populated data
     const order = await Order.findById(orderId)
-      .populate({
-        path: "user",
-        select: "name email phone orderId",
-      })
+      .populate({ path: "user", select: "name email phone orderId" })
       .populate("shippingAddress")
       .populate({
         path: "orderItems.product",
@@ -763,22 +843,37 @@ export const getOrderAndShippingById = async (orderId) => {
       return { success: false, error: "Order not found" };
     }
 
-    let deliveryDate = order.estimatedDeliveryDate || null;
+    // ensure expectedDeliveryDays exists (compute once when paid)
+    let expectedDeliveryDays = order.expectedDeliveryDays || null;
 
-    // Only calculate for processing orders without existing date
-    if (order.status === "processing" && !deliveryDate) {
-      deliveryDate = await calculateDeliveryDate(order);
-      if (deliveryDate) {
-        // Update order in database
-        await Order.findByIdAndUpdate(orderId, {
-          estimatedDeliveryDate: deliveryDate,
-        });
+    if ((!expectedDeliveryDays || typeof expectedDeliveryDays !== "string") && order.isPaid && order.paidAt) {
+      expectedDeliveryDays = await calculateDeliveryDate(order);
+      if (expectedDeliveryDays) {
+        // persist normalized numeric string for consistency
+        await Order.findByIdAndUpdate(orderId, { expectedDeliveryDays });
       }
     }
 
-    // Prepare response
+    // Always calculate from paidAt + expectedDeliveryDays (ignore status/estimatedDeliveryDate)
+    let deliveryDateRange = null;
+    if (expectedDeliveryDays && order.paidAt) {
+      deliveryDateRange = calculateDateRangeFromDeliveryDays(new Date(order.paidAt), expectedDeliveryDays);
+    }
+
+    // Build response
     const orderObject = order.toObject();
-    orderObject.deliveryDate = deliveryDate;
+    orderObject.expectedDeliveryDays = expectedDeliveryDays || null;
+
+    if (deliveryDateRange) {
+      orderObject.deliveryDateRange = {
+        from: deliveryDateRange.from,
+        to: deliveryDateRange.to,
+        isRange: deliveryDateRange.isRange,
+      };
+    } else {
+      // if we couldn't compute (e.g., unpaid), ensure field is absent/null
+      orderObject.deliveryDateRange = null;
+    }
 
     return {
       success: true,

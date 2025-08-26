@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Heart, ArrowRight, Tag, X, Menu } from "lucide-react"
+import { ShoppingCart, Heart, ArrowRight, Tag, X, Menu, Star, Zap, MessageCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -18,16 +18,16 @@ const formatPrice = (price) => {
 }
 
 const ProductCardSkeleton = () => (
-  <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200 overflow-hidden">
-    <div className="relative aspect-square overflow-hidden rounded-lg mb-4 w-full">
-      <Skeleton className="w-full h-full bg-gray-200" />
+  <div className="bg-white rounded-2xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group">
+    <div className="relative aspect-square overflow-hidden rounded-xl mb-5 w-full">
+      <Skeleton className="w-full h-full bg-gradient-to-r from-gray-100 to-gray-200" />
     </div>
     <div className="space-y-3">
-      <Skeleton className="h-5 w-3/4 bg-gray-200" />
-      <Skeleton className="h-4 w-1/2 bg-gray-200" />
+      <Skeleton className="h-5 w-3/4 bg-gray-200 rounded-full" />
+      <Skeleton className="h-4 w-1/2 bg-gray-200 rounded-full" />
       <div className="flex justify-between items-center pt-2">
-        <Skeleton className="h-6 w-20 bg-gray-200" />
-        <Skeleton className="h-9 w-9 rounded-full bg-gray-200" />
+        <Skeleton className="h-6 w-20 bg-gray-200 rounded-full" />
+        <Skeleton className="h-10 w-10 rounded-full bg-gray-200" />
       </div>
     </div>
   </div>
@@ -149,6 +149,10 @@ const FeaturedProducts = () => {
     e.stopPropagation()
     e.preventDefault()
     addToCart(product)
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart.`,
+    })
   }
 
   const handleWishlistToggle = (productId, e) => {
@@ -174,16 +178,27 @@ const FeaturedProducts = () => {
     return totalCounts[activeCategory] || 0
   }
 
+  const openWhatsApp = () => {
+    const phoneNumber = "2348160126157"; // Nigerian number without leading 0
+    const message = "Hello! I'm interested in a product but couldn't find it on your website. Can you help me?";
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  }
+
   return (
-    <section className="py-16 bg-gray-50 relative min-h-screen" id="products">
+    <section className="py-20 bg-gradient-to-b from-gray-50 to-white relative min-h-screen" id="products">
+      {/* Background elements */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-100 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-100 rounded-full translate-x-1/3 translate-y-1/3 opacity-30"></div>
+      
       {/* Mobile Sidebar */}
       <div
         className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
-        <div className="relative h-full w-3/4 max-w-xs bg-white shadow-lg animate-slide-in flex flex-col">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-600">
-            <h3 className="font-bold text-white">Categories</h3>
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
+        <div className="relative h-full w-3/4 max-w-xs bg-white shadow-2xl animate-slide-in flex flex-col">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-500">
+            <h3 className="font-bold text-white text-lg">Categories</h3>
             <button
               onClick={() => setMobileSidebarOpen(false)}
               className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -198,81 +213,122 @@ const FeaturedProducts = () => {
           >
             <button
               onClick={() => handleCategoryChange("all")}
-              className={`w-full px-4 py-3 text-left rounded-lg transition-all font-medium ${
-                activeCategory === "all" ? "bg-blue-600 text-white shadow-md" : "hover:bg-gray-100 text-gray-700"
+              className={`w-full px-4 py-3 text-left rounded-xl transition-all font-medium flex items-center justify-between ${
+                activeCategory === "all" 
+                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg" 
+                  : "hover:bg-gray-100 text-gray-700 border border-gray-200"
               }`}
             >
-              All Products
-              <span className="text-sm opacity-70 ml-2">({totalCounts.all || 0})</span>
+              <span>All Products</span>
+              <span className="text-sm bg-white/20 px-2 py-1 rounded-full">({totalCounts.all || 0})</span>
             </button>
             {categories.map((category) => (
               <button
                 key={category.slug}
                 onClick={() => handleCategoryChange(category.slug)}
-                className={`w-full px-4 py-3 text-left rounded-lg transition-all font-medium ${
+                className={`w-full px-4 py-3 text-left rounded-xl transition-all font-medium flex items-center justify-between ${
                   activeCategory === category.slug
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "hover:bg-gray-100 text-gray-700"
+                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg"
+                    : "hover:bg-gray-100 text-gray-700 border border-gray-200"
                 }`}
               >
-                {category.name}
-                <span className="text-sm opacity-70 ml-2">({totalCounts[category.slug] || 0})</span>
+                <span>{category.name}</span>
+                <span className="text-sm bg-white/20 px-2 py-1 rounded-full">({totalCounts[category.slug] || 0})</span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="container px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">
-            Featured Tech Products
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto relative z-10">
+        {/* Header Section */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full mb-4">
+            <Zap className="h-4 w-4" />
+            <span className="text-sm font-medium">Premium Tech Collection</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+            Discover Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">Featured</span> Products
           </h2>
-          <p className="text-gray-500 max-w-md mx-auto text-lg">Premium phones, laptops, and accessories</p>
+          <p className="text-gray-600 max-w-2xl mx-auto text-lg">Premium phones, laptops, and accessories with cutting-edge technology</p>
+        </div>
+
+        {/* Features Banner - Updated with new features */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+            <div className="w-10 h-10 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
+              <Zap className="h-5 w-5 text-blue-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-700">Latest Tech</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+            <div className="w-10 h-10 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
+              <Star className="h-5 w-5 text-green-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-700">Premium Quality</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+            <div className="w-10 h-10 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
+              <MessageCircle className="h-5 w-5 text-purple-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-700">24/7 Support</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
+            <div className="w-10 h-10 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-2">
+              <ArrowRight className="h-5 w-5 text-orange-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-700">Easy Returns</p>
+          </div>
         </div>
 
         {/* Mobile Category Toggle Button */}
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="lg:hidden mb-8 flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
+          className="lg:hidden mb-8 w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
         >
           <Menu className="h-5 w-5" />
           Browse Categories
+          <span className="bg-white/20 px-2 py-1 rounded-full text-sm">({getCurrentCategoryCount()})</span>
         </button>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Categories - Always show */}
-          <div className="hidden lg:block lg:w-1/5">
-            <div className="sticky top-8 space-y-3 p-6 bg-white rounded-xl border border-gray-200 shadow-md">
-              <h3 className="font-bold text-lg mb-4 text-gray-800">Categories</h3>
+          <div className="hidden lg:block lg:w-1/4 xl:w-1/5">
+            <div className="sticky top-8 space-y-3 p-6 bg-white rounded-2xl border border-gray-200 shadow-lg">
+              <h3 className="font-bold text-xl mb-5 text-gray-900 flex items-center gap-2">
+                <Menu className="h-5 w-5 text-blue-600" />
+                Categories
+              </h3>
               <button
                 onClick={() => handleCategoryChange("all")}
-                className={`w-full px-4 py-3 text-left rounded-lg transition-all font-medium cursor-pointer ${
-                  activeCategory === "all" ? "bg-blue-600 text-white shadow-md" : "hover:bg-gray-100 text-gray-700"
+                className={`w-full px-4 py-3 text-left rounded-xl transition-all font-medium flex items-center justify-between cursor-pointer ${
+                  activeCategory === "all" 
+                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg" 
+                    : "hover:bg-gray-50 text-gray-700 border border-gray-200"
                 }`}
               >
-                All Products
-                <span className="text-sm opacity-70 ml-2">({totalCounts.all || 0})</span>
+                <span>All Products</span>
+                <span className="text-sm bg-white/20 px-2 py-1 rounded-full">({totalCounts.all || 0})</span>
               </button>
               {categories.map((category) => (
                 <button
                   key={category.slug}
                   onClick={() => handleCategoryChange(category.slug)}
-                  className={`w-full px-4 py-3 text-left rounded-lg transition-all font-medium cursor-pointer ${
+                  className={`w-full px-4 py-3 text-left rounded-xl transition-all font-medium flex items-center justify-between cursor-pointer ${
                     activeCategory === category.slug
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "hover:bg-gray-100 text-gray-700"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg"
+                      : "hover:bg-gray-50 text-gray-700 border border-gray-200"
                   }`}
                 >
-                  {category.name}
-                  <span className="text-sm opacity-70 ml-2">({totalCounts[category.slug] || 0})</span>
+                  <span>{category.name}</span>
+                  <span className="text-sm bg-white/20 px-2 py-1 rounded-full">({totalCounts[category.slug] || 0})</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="lg:w-4/5">
+          <div className="lg:w-3/4 xl:w-4/5">
             {isLoading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(8)].map((_, index) => (
@@ -288,7 +344,7 @@ const FeaturedProducts = () => {
                       <div
                         ref={isLastProduct ? lastProductRef : null}
                         key={`${product.id}-${index}`}
-                        className="group relative bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all border border-gray-200 overflow-hidden cursor-pointer"
+                        className="group relative bg-white rounded-2xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden cursor-pointer transform hover:-translate-y-1"
                         onClick={(e) => handleProductClick(product, e)}
                       >
                         <div className="absolute top-4 right-4 z-10">
@@ -312,17 +368,17 @@ const FeaturedProducts = () => {
                           </span>
                         )}
 
-                        <div className="relative aspect-square overflow-hidden rounded-xl mb-4 w-full bg-gray-100">
+                        <div className="relative aspect-square overflow-hidden rounded-xl mb-5 w-full bg-gradient-to-br from-gray-100 to-gray-200">
                           <img
                             src={product.defaultImage || "/placeholder.svg"}
                             alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                           />
                         </div>
 
                         <div className="space-y-3">
-                          <h3 className="font-semibold text-gray-800 text-base line-clamp-2 group-hover:text-blue-600 transition-colors">
+                          <h3 className="font-semibold text-gray-900 text-base line-clamp-2 group-hover:text-blue-600 transition-colors">
                             {product.name}
                           </h3>
 
@@ -350,24 +406,24 @@ const FeaturedProducts = () => {
                             {product.stock > 0 ? (
                               <Button
                                 onClick={(e) => handleAddToCart(product, e)}
-                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-400 hover:shadow-lg text-white rounded-lg h-10 font-medium transition-all hover:scale-105"
+                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-xl text-white rounded-xl h-10 font-medium transition-all hover:scale-105"
                               >
                                 <ShoppingCart className="mr-2 h-4 w-4" />
                                 Add to Cart
                               </Button>
                             ) : (
-                              <div className="flex-1 flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg py-2 px-4 h-10">
+                              <div className="flex-1 flex items-center justify-center bg-gray-100 text-gray-500 rounded-xl py-2 px-4 h-10">
                                 Out of Stock
                               </div>
                             )}
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-gray-500 hover:bg-gray-100 hover:text-gray-700 h-10 w-10 p-0 ml-2 rounded-lg"
+                              className="text-gray-500 hover:bg-gray-100 hover:text-gray-700 h-10 w-10 p-0 ml-2 rounded-xl"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 e.preventDefault()
-                                router.push(`/product/${product.id}`)
+                                router.push(`/product/${product.slug}-${product.productId}`)
                               }}
                             >
                               <ArrowRight className="h-4 w-4" />
@@ -388,15 +444,36 @@ const FeaturedProducts = () => {
                 )}
 
                 {!hasMore && products.length > 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">You've viewed all products in this category</p>
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                      <Star className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <p className="text-gray-600 mb-4">You've viewed all {getCurrentCategoryCount()} products in this category.</p>
+                    <p className="text-gray-600 mb-6">Didn't find what you're looking for?</p>
+                    <Button 
+                      onClick={openWhatsApp}
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      WhatsApp Us for Special Requests
+                    </Button>
                   </div>
                 )}
 
                 {products.length === 0 && !isLoading && (
                   <div className="text-center py-16">
-                    <div className="text-6xl mb-4">🔍</div>
-                    <p className="text-gray-500 text-lg">No products found in this category</p>
+                    <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                      <span className="text-4xl">🔍</span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">No products found</h3>
+                    <p className="text-gray-500 mb-6">Try selecting a different category or check back later for new arrivals.</p>
+                    <Button 
+                      onClick={openWhatsApp}
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      WhatsApp Us for Special Requests
+                    </Button>
                   </div>
                 )}
               </>

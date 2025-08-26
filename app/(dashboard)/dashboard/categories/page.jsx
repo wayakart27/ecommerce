@@ -498,7 +498,7 @@ export default function CategoriesPage() {
                               disabled={actionInProgress === category._id}
                             >
                               {actionInProgress === category._id ? (
-                                <span className="loading-spinner" />
+                                <span className="loading-spinner w-4" />
                               ) : (
                                 <MoreHorizontal className="h-4 w-4" />
                               )}

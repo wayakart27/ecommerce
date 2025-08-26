@@ -4,9 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { states } from '@/data/states';
 import dbConnect from '@/lib/mongodb';
 import Shipping from '@/model/Shipping';
-import { cache } from 'react';
 
 function serializeConfig(config) {
+  if (!config) return null;
   return JSON.parse(JSON.stringify(config));
 }
 
@@ -19,38 +19,50 @@ const isValidCity = (state, city) => {
   return stateData ? stateData.lgas.includes(city) : false;
 };
 
-export const getShippingConfig = cache(async () => {
+function getEstimatedDeliveryDate(deliveryDaysString) {
+  if (!deliveryDaysString) return 'Not specified';
+  
+  // Extract the first number from the range (e.g., "3-5" -> 3)
+  const days = parseInt(deliveryDaysString.split('-')[0]) || 3;
+  
+  const today = new Date();
+  const deliveryDate = new Date(today);
+  deliveryDate.setDate(today.getDate() + days);
+
+  return deliveryDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export async function getShippingConfig() {
   try {
     await dbConnect();
-    let config = await Shipping.findOne({});
+    const shippingConfig = await Shipping.findOne({ isActive: true });
     
-    if (!config) {
-      config = new Shipping({
+    if (!shippingConfig) {
+      const defaultConfig = new Shipping({
         defaultPrice: 1500,
-        defaultDeliveryDays: 2, // NEW: Added default delivery days
+        defaultDeliveryDays: "2-3",
         freeShippingThreshold: 20000,
         statePrices: [],
         cityPrices: [],
         isActive: true
       });
-      await config.save();
+      
+      await defaultConfig.save();
+      return {
+        success: true,
+        data: serializeConfig(defaultConfig),
+        message: 'Default shipping configuration created'
+      };
     }
-
-    const configData = config.toObject({
-      virtuals: true,
-      versionKey: false,
-      transform: (doc, ret) => {
-        delete ret._id;
-        delete ret.createdAt;
-        delete ret.updatedAt;
-        delete ret.__v;
-        return ret;
-      }
-    });
 
     return {
       success: true,
-      data: configData,
+      data: serializeConfig(shippingConfig),
       message: 'Shipping configuration loaded successfully'
     };
   } catch (error) {
@@ -58,14 +70,79 @@ export const getShippingConfig = cache(async () => {
     return {
       success: false,
       error: 'Failed to fetch shipping configuration',
-      details: error.message
+      details: error.message || 'Unknown error'
     };
   }
-});
+}
+
+export async function calculateShippingCost(location, orderTotal = 0) {
+  try {
+    await dbConnect();
+
+    // Use the static method from your Shipping model to calculate shipping
+    const shippingResult = await Shipping.calculateNigeriaShipping(location, orderTotal);
+
+    return {
+      success: true,
+      data: {
+        price: shippingResult.price,
+        method: shippingResult.method,
+        isFree: shippingResult.isFree,
+        deliveryDays: shippingResult.deliveryDays,
+        currency: shippingResult.currency,
+        estimatedDelivery: getEstimatedDeliveryDate(shippingResult.deliveryDays),
+      },
+    };
+  } catch (error) {
+    console.error("Error calculating shipping cost:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to calculate shipping cost",
+      data: {
+        price: 4000, // fallback default price
+        method: "Standard Delivery",
+        isFree: false,
+        deliveryDays: "3-5",
+        currency: "NGN",
+        estimatedDelivery: getEstimatedDeliveryDate("3-5"),
+      },
+    };
+  }
+}
+
+export async function getShippingConfiguration() {
+  try {
+    await dbConnect();
+    const config = await Shipping.findOne({ isActive: true });
+
+    if (!config) {
+      return {
+        success: false,
+        error: "No active shipping configuration found",
+      };
+    }
+
+    return {
+      success: true,
+      data: serializeConfig({
+        defaultPrice: config.defaultPrice,
+        defaultDeliveryDays: config.defaultDeliveryDays,
+        freeShippingThreshold: config.freeShippingThreshold,
+        statePrices: config.statePrices,
+        cityPrices: config.cityPrices,
+      }),
+    };
+  } catch (error) {
+    console.error("Error fetching shipping configuration:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch shipping configuration",
+    };
+  }
+}
 
 export async function revalidateShippingConfig() {
-  const { unstable_cache } = await import('next/cache');
-  await unstable_cache.clear('shipping-config');
+  revalidatePath('/admin/shipping');
 }
 
 export async function updateShippingConfig(formData) {
@@ -74,13 +151,13 @@ export async function updateShippingConfig(formData) {
     
     const rawData = {
       defaultPrice: Number(formData.get('defaultPrice')),
-      defaultDeliveryDays: Number(formData.get('defaultDeliveryDays')), // NEW: Added
+      defaultDeliveryDays: formData.get('defaultDeliveryDays'), // Keep as string
       freeShippingThreshold: formData.get('freeShippingThreshold') 
         ? Number(formData.get('freeShippingThreshold')) 
         : undefined,
       statePrices: JSON.parse(formData.get('statePrices')),
       cityPrices: JSON.parse(formData.get('cityPrices')),
-      isActive: formData.get('isActive')
+      isActive: formData.get('isActive') === 'true'
     };
 
     // Validate state prices
@@ -103,7 +180,7 @@ export async function updateShippingConfig(formData) {
     const updatedConfig = await Shipping.findOneAndUpdate(
       {},
       { $set: rawData },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     revalidatePath('/admin/shipping');
@@ -123,7 +200,6 @@ export async function updateShippingConfig(formData) {
 }
 
 export async function addStatePrice(statePriceData) {
-
   try {
     await dbConnect();
     
@@ -140,13 +216,10 @@ export async function addStatePrice(statePriceData) {
       sp => sp.state === statePriceData.state
     );
 
-    // NEW: Add delivery days to state price
     const newStatePrice = {
       state: statePriceData.state,
       price: Number(statePriceData.price),
-      deliveryDays: statePriceData.deliveryDays 
-        ? Number(statePriceData.deliveryDays) 
-        : undefined,
+      deliveryDays: statePriceData.deliveryDays || undefined, // Keep as string
       freeShippingThreshold: statePriceData.freeShippingThreshold 
         ? Number(statePriceData.freeShippingThreshold) 
         : undefined
@@ -225,14 +298,11 @@ export async function addCityPrice(cityPriceData) {
       cp => cp.state === cityPriceData.state && cp.city === cityPriceData.city
     );
 
-    // NEW: Add delivery days to city price
     const newCityPrice = {
       state: cityPriceData.state,
       city: cityPriceData.city,
       price: Number(cityPriceData.price),
-      deliveryDays: cityPriceData.deliveryDays 
-        ? Number(cityPriceData.deliveryDays) 
-        : undefined,
+      deliveryDays: cityPriceData.deliveryDays || undefined, // Keep as string
       freeShippingThreshold: cityPriceData.freeShippingThreshold 
         ? Number(cityPriceData.freeShippingThreshold) 
         : undefined

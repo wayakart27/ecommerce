@@ -58,14 +58,87 @@ const orderSchema = new mongoose.Schema({
     }
   ],
   shippingAddress: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Address',
-    required: [true, 'Please provide shipping address']
+  // Embedded address object instead of reference
+  firstName: {
+    type: String,
+    required: [true, 'First name is required'],
+    trim: true
   },
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    trim: true
+  },
+  phone: {
+    type: String,
+    required: [true, 'Phone number is required'],
+    trim: true
+  },
+  address: {
+    type: String,
+    required: [true, 'Address is required'],
+    trim: true
+  },
+  city: {
+    type: String,
+    required: [true, 'City is required'],
+    trim: true
+  },
+  state: {
+    type: String,
+    required: [true, 'State is required'],
+    trim: true
+  },
+  country: {
+    type: String,
+    required: [true, 'Country is required'],
+    trim: true,
+    default: 'Nigeria'
+  },
+  postalCode: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  additionalInfo: {
+    type: String,
+    default: '',
+    trim: true
+  }
+},
   paymentMethod: {
     type: String,
     required: [true, 'Please provide payment method'],
     index: true
+  },
+  // Simplified payment details for Paystack
+  paymentDetails: {
+    channel: {
+      type: String,
+      enum: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer', 'other'],
+      default: 'card'
+    },
+    bank: {
+      type: String,
+      trim: true
+    },
+    cardType: {
+      type: String,
+      trim: true
+    },
+    authorizationCode: {
+      type: String,
+      trim: true
+    },
+    last4: {
+      type: String,
+      maxlength: 4
+    }
   },
   itemsPrice: {
     type: Number,
@@ -113,6 +186,30 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     index: true
   },
+  // Indicates if this is a referral order
+  isReferral: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  // Referral bonus information
+  referralBonus: {
+    referrer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    amount: {
+      type: Number,
+      default: 0
+    },
+    percentage: {
+      type: Number,
+      default: 0
+    },
+    processedAt: {
+      type: Date
+    }
+  },
   status: {
     type: String,
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
@@ -159,14 +256,80 @@ orderSchema.index({ status: 1, createdAt: 1 });
 orderSchema.index({ isPaid: 1, isDelivered: 1 });
 orderSchema.index({ totalPrice: 1, createdAt: 1 });
 orderSchema.index({ 'statusTrack.status': 1, 'statusTrack.date': 1 });
+orderSchema.index({ 'referralBonus.referrer': 1 });
+orderSchema.index({ 'paymentDetails.channel': 1 });
+
+// Indexes for shipping address fields (optional, for better querying)
+orderSchema.index({ 'shippingAddress.city': 1 });
+orderSchema.index({ 'shippingAddress.state': 1 });
+orderSchema.index({ 'shippingAddress.country': 1 });
 
 // Pre-save hook for price calculation
 orderSchema.pre('save', function(next) {
-  if (this.isModified('orderItems')) {
+  if (this.isModified('orderItems') || this.isModified('shippingPrice')) {
     this.itemsPrice = this.orderItems.reduce(
       (acc, item) => acc + (item.discountedPrice * item.quantity), 0
     );
     this.totalPrice = this.itemsPrice + this.shippingPrice;
+  }
+  next();
+});
+
+// Pre-save hook to prevent shipping address updates after payment
+orderSchema.pre("save", async function (next) {
+  if (!this.isNew && this.isModified("shippingAddress")) {
+    try {
+      const originalOrder = await this.constructor.findById(this._id).lean();
+      if (originalOrder && originalOrder.isPaid) {
+        // Revert all shipping address fields to their original values
+        this.shippingAddress = originalOrder.shippingAddress;
+      }
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
+
+// Handle direct update queries (findOneAndUpdate, findByIdAndUpdate)
+orderSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate();
+  
+  // Check if any shipping address field is being updated
+  const isShippingAddressModified = update && (
+    update.shippingAddress || 
+    update.$set?.shippingAddress ||
+    Object.keys(update).some(key => key.startsWith('shippingAddress.'))
+  );
+  
+  if (isShippingAddressModified) {
+    try {
+      const docToUpdate = await this.model.findOne(this.getQuery()).lean();
+      if (docToUpdate && docToUpdate.isPaid) {
+        // Remove all shipping address fields from the update
+        if (update.shippingAddress) delete update.shippingAddress;
+        if (update.$set?.shippingAddress) delete update.$set.shippingAddress;
+        
+        // Remove individual shipping address fields
+        Object.keys(update).forEach(key => {
+          if (key.startsWith('shippingAddress.')) {
+            delete update[key];
+          }
+        });
+        
+        if (update.$set) {
+          Object.keys(update.$set).forEach(key => {
+            if (key.startsWith('shippingAddress.')) {
+              delete update.$set[key];
+            }
+          });
+        }
+        
+        this.setUpdate(update);
+      }
+    } catch (err) {
+      return next(err);
+    }
   }
   next();
 });
