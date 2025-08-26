@@ -485,7 +485,6 @@ const ShippingInfoSection = () => {
             <span className="text-blue-600 mr-2">•</span>
             <span>
               <strong>Kano addresses:</strong> Delivered within 1-2 business days. 
-              day if after 4pm)
             </span>
           </p>
           <p className="flex items-start">
