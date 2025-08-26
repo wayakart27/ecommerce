@@ -1,41 +1,27 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Image from "next/image";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
-import { Eye, EyeOff, UserPlus, Gift } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { signUpSchema } from "@/schemas/authSchema";
-import { register } from "@/actions/auth";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react"
+import Image from "next/image"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import Link from "next/link"
+import { Eye, EyeOff, UserPlus, Gift } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { signUpSchema } from "@/schemas/authSchema"
+import { register } from "@/actions/auth"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export function SignUpForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const referralCode = searchParams.get("ref");
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const referralCode = searchParams.get("ref")
 
   const form = useForm({
     resolver: zodResolver(signUpSchema),
@@ -47,36 +33,36 @@ export function SignUpForm() {
       referralCode: referralCode || "",
     },
     mode: "onChange",
-  });
+  })
 
   const onSubmit = async (data) => {
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
       const response = await register({
         ...data,
         referralCode: data.referralCode || undefined, // Send undefined if empty
-      });
+      })
 
       if (response?.error) {
         toast.error("Registration Failed", {
           description: response.error,
-        });
+        })
       } else {
         toast.success("Account Created", {
           description: response.success,
-        });
-        form.reset();
-        router.push("/auth/login");
+        })
+        form.reset()
+        router.push("/auth/login")
       }
     } catch (error) {
       toast.error("Something went wrong", {
         description: "Please try again.",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Card className="w-full shadow-lg">
@@ -116,12 +102,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="your-email@example.com"
-                      type="email"
-                      autoComplete="email"
-                      {...field}
-                    />
+                    <Input placeholder="your-email@example.com" type="email" autoComplete="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -153,9 +134,7 @@ export function SignUpForm() {
                         ) : (
                           <Eye className="h-4 w-4 text-muted-foreground" />
                         )}
-                        <span className="sr-only">
-                          {showPassword ? "Hide password" : "Show password"}
-                        </span>
+                        <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                       </Button>
                     </div>
                   </FormControl>
@@ -182,20 +161,14 @@ export function SignUpForm() {
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="h-4 w-4 text-muted-foreground" />
                         ) : (
                           <Eye className="h-4 w-4 text-muted-foreground" />
                         )}
-                        <span className="sr-only">
-                          {showConfirmPassword
-                            ? "Hide password"
-                            : "Show password"}
-                        </span>
+                        <span className="sr-only">{showConfirmPassword ? "Hide password" : "Show password"}</span>
                       </Button>
                     </div>
                   </FormControl>
@@ -215,10 +188,7 @@ export function SignUpForm() {
                     Referral Code (Optional)
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter referral code if you have one"
-                      {...field}
-                    />
+                    <Input placeholder="Enter referral code if you have one" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -244,22 +214,11 @@ export function SignUpForm() {
       <CardFooter className="flex flex-col items-center gap-2">
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link
-            href="/auth/login"
-            className="font-medium text-primary hover:underline"
-          >
+          <Link href="/auth/login" className="font-medium text-primary hover:underline">
             Login
           </Link>
         </p>
-        {referralCode && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-700">
-              <strong>Referral Program:</strong> Your referrer will only receive
-              their bonus after you make your first purchase of ₦1500 or more.
-            </p>
-          </div>
-        )}
       </CardFooter>
     </Card>
-  );
+  )
 }
