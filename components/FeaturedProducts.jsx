@@ -97,14 +97,10 @@ const FeaturedProducts = () => {
       const response = await getAllProductsGroupedByCategory(pageNum, 8, category)
 
       if (reset || pageNum === 1) {
-        // Randomize products only when category is "all" and it's the first page
-        if (category === "all") {
-          const shuffledProducts = shuffleArray(response.products);
-          setProducts(shuffledProducts);
-          setRandomizedProducts(shuffledProducts);
-        } else {
-          setProducts(response.products);
-        }
+        // Randomize products for ALL categories, not just "all"
+        const shuffledProducts = shuffleArray(response.products);
+        setProducts(shuffledProducts);
+        setRandomizedProducts(shuffledProducts);
         setTotalCounts(response.totalCounts)
       } else {
         setProducts((prev) => [...prev, ...response.products])
@@ -426,7 +422,7 @@ const FeaturedProducts = () => {
                           <div className="flex items-center gap-3">
                             {product.category && (
                               <div className="flex items-center gap-1">
-                                <Tag className="w-3 h-3 text-gray-500" />
+                                <Tag className="w-3 w-3 text-gray-500" />
                                 <span className="text-xs text-gray-500 capitalize">{product.category}</span>
                               </div>
                             )}
