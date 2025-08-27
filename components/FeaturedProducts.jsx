@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Heart, ArrowRight, Tag, X, Menu, Star, Zap, MessageCircle } from "lucide-react"
+import { ShoppingCart, Heart, ArrowRight, Tag, X, Menu, Star, Zap, MessageCircle, RefreshCw } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -44,6 +44,8 @@ const FeaturedProducts = () => {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [totalCounts, setTotalCounts] = useState({ all: 0 })
+  const [errorLoading, setErrorLoading] = useState(false)
+  const [randomizedProducts, setRandomizedProducts] = useState([])
 
   const observer = useRef()
   const { toast } = useToast()
@@ -73,8 +75,19 @@ const FeaturedProducts = () => {
     [isLoading, isLoadingMore, hasMore],
   )
 
+  // Function to shuffle array randomly
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
   const fetchProducts = async (pageNum = 1, category = "all", reset = false) => {
     try {
+      setErrorLoading(false);
       if (pageNum === 1) {
         setIsLoading(true)
       } else {
@@ -84,7 +97,14 @@ const FeaturedProducts = () => {
       const response = await getAllProductsGroupedByCategory(pageNum, 8, category)
 
       if (reset || pageNum === 1) {
-        setProducts(response.products)
+        // Randomize products only when category is "all" and it's the first page
+        if (category === "all") {
+          const shuffledProducts = shuffleArray(response.products);
+          setProducts(shuffledProducts);
+          setRandomizedProducts(shuffledProducts);
+        } else {
+          setProducts(response.products);
+        }
         setTotalCounts(response.totalCounts)
       } else {
         setProducts((prev) => [...prev, ...response.products])
@@ -93,6 +113,7 @@ const FeaturedProducts = () => {
       setHasMore(response.pagination?.hasNextPage || false)
     } catch (error) {
       console.error("Failed to fetch products:", error)
+      setErrorLoading(true);
       toast({
         title: "Error",
         description: "Failed to load products. Please try again later.",
@@ -103,6 +124,11 @@ const FeaturedProducts = () => {
       setIsLoadingMore(false)
     }
   }
+
+  // Function to retry loading products
+  const retryLoading = () => {
+    fetchProducts(1, activeCategory, true);
+  };
 
   // Initial load
   useEffect(() => {
@@ -329,7 +355,22 @@ const FeaturedProducts = () => {
 
           {/* Products Grid */}
           <div className="lg:w-3/4 xl:w-4/5">
-            {isLoading ? (
+            {errorLoading ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-4xl">⚠️</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Failed to load products</h3>
+                <p className="text-gray-500 mb-6">Please try again to load the products.</p>
+                <Button 
+                  onClick={retryLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            ) : isLoading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {[...Array(8)].map((_, index) => (
                   <ProductCardSkeleton key={index} />
@@ -355,7 +396,7 @@ const FeaturedProducts = () => {
                             onClick={(e) => handleWishlistToggle(product.id, e)}
                           >
                             <Heart
-                              className={`w-4 h-4 transition-colors ${
+                              className={`w-4 w-4 transition-colors ${
                                 wishlist.includes(product.id) ? "text-red-500 fill-red-500" : "text-gray-500"
                               }`}
                             />

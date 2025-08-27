@@ -51,7 +51,7 @@ const Footer = () => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <span className="text-gray-300">
-                  Shop No. 4 Farm Centre,<br />
+                  No.7 Farm Centre,<br />
                   Kano, Nigeria
                 </span>
               </li>

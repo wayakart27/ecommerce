@@ -55,7 +55,7 @@ const StoreLocation = () => {
                   <div>
                     <h3 className="text-xl md:text-2xl font-semibold text-gray-800 mb-2 md:mb-3">Store Location</h3>
                     <p className="text-gray-600 md:text-lg leading-relaxed">
-                      Shop No. 4 Farm Centre,
+                       No.7 Farm Centre,
                       <br /> Kano, Nigeria
                     </p>
                   </div>
