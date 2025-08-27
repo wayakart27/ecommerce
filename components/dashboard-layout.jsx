@@ -216,7 +216,8 @@ export default function DashboardLayout({ children }) {
           </SheetContent>
         </Sheet>
 
-        <Link href="/" className="flex items-center gap-2">
+        {/* Only show logo on desktop, not on mobile */}
+        <Link href="/" className="hidden md:flex items-center gap-2">
           <div className="relative h-12 w-32 md:h-14 md:w-40 transition-all duration-300 hover:opacity-90">
             <div className="relative w-[80px] h-[50px] sm:w-[100px] sm:h-[50px] md:w-[120px] md:h-[60px] mx-auto">
               <Image
@@ -232,6 +233,19 @@ export default function DashboardLayout({ children }) {
         </Link>
 
         <div className="flex-1"></div>
+
+        {/* Show Shop link on mobile */}
+        <div className="md:hidden flex items-center">
+          <Link
+            href="/"
+            className="flex items-center px-3 py-2 rounded-md transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white text-sm cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              <span>Shop</span>
+            </div>
+          </Link>
+        </div>
 
         {/* Added visible logout button on desktop */}
         <div className="hidden md:flex items-center gap-4">
