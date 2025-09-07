@@ -171,19 +171,19 @@ export default function DashboardLayout({ children }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="flex flex-col p-0">
-            <div className="flex items-center justify-center border-b px-6 py-4">
+            <div className="flex items-center justify-center border-b px-4 py-3">
               <Link href="/" className="flex items-center gap-2">
                 <Image
                   src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
                   alt="PureLuxury Logo"
-                  width={160}
-                  height={64}
+                  width={120}
+                  height={48}
                   className="rounded-lg object-contain"
                   priority
                 />
               </Link>
             </div>
-            <nav className="grid gap-2 p-4">
+            <nav className="flex flex-col gap-2 p-3 overflow-y-auto">
               {navItems.map((item, index) => (
                 <Link
                   key={index}
@@ -218,15 +218,15 @@ export default function DashboardLayout({ children }) {
 
         {/* Only show logo on desktop, not on mobile */}
         <Link href="/" className="hidden md:flex items-center gap-2">
-          <div className="relative h-12 w-32 md:h-14 md:w-40 transition-all duration-300 hover:opacity-90">
-            <div className="relative w-[80px] h-[50px] sm:w-[100px] sm:h-[50px] md:w-[120px] md:h-[60px] mx-auto">
+          <div className="relative h-10 w-28 md:h-14 md:w-40 transition-all duration-300 hover:opacity-90">
+            <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[45px] md:w-[120px] md:h-[60px] mx-auto">
               <Image
                 src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
                 alt="PureLuxury"
                 fill
                 className="object-contain"
                 priority
-                sizes="(max-width: 640px) 80px, (max-width: 768px) 100px, 120px"
+                sizes="(max-width: 640px) 70px, (max-width: 768px) 90px, 120px"
               />
             </div>
           </div>
@@ -442,7 +442,7 @@ export default function DashboardLayout({ children }) {
 
       <div className="flex flex-1">
         <aside className="hidden w-64 shrink-0 border-r md:block">
-          <nav className="grid gap-2 p-4">
+          <nav className="flex flex-col gap-2 p-3 h-[calc(100vh-4rem)] overflow-y-auto">
             {navItems.map((item, index) => (
               <Link
                 key={index}

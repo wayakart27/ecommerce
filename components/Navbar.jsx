@@ -54,12 +54,13 @@ const Navbar = () => {
                 alt="PureLuxury Logo"
                 width={120}
                 height={40}
-                className="h-8 w-auto md:h-10"
+                className="h-6 w-auto md:h-10" // Reduced from h-8 to h-6 on small screens
                 priority
               />
             </Link>
-            <div className="hidden sm:block">
-              <h1 className="text-lg md:text-2xl font-bold text-white">
+            {/* Show brand name on all screens, not just sm and above */}
+            <div className="block">
+              <h1 className="text-base md:text-2xl font-bold text-white"> {/* Reduced from text-lg to text-base on small screens */}
                 PureLuxury
               </h1>
             </div>
