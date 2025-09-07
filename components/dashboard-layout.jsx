@@ -174,8 +174,8 @@ export default function DashboardLayout({ children }) {
             <div className="flex items-center justify-center border-b px-6 py-4">
               <Link href="/" className="flex items-center gap-2">
                 <Image
-                  src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png"
-                  alt="Company Logo"
+                  src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
+                  alt="PureLuxury Logo"
                   width={160}
                   height={64}
                   className="rounded-lg object-contain"
@@ -221,8 +221,8 @@ export default function DashboardLayout({ children }) {
           <div className="relative h-12 w-32 md:h-14 md:w-40 transition-all duration-300 hover:opacity-90">
             <div className="relative w-[80px] h-[50px] sm:w-[100px] sm:h-[50px] md:w-[120px] md:h-[60px] mx-auto">
               <Image
-                src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png"
-                alt="wayakart"
+                src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
+                alt="PureLuxury"
                 fill
                 className="object-contain"
                 priority

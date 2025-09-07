@@ -27,12 +27,12 @@ const features = [
   {
     id: 3,
     title: "Fast Delivery",
-    description: "Quick shipping across Northen  Nigeria.",
+    description: "Quick shipping Nationwide, Nigeria.",
     icon: <Truck className="h-6 w-6 text-orange-600" />,
     color: "from-orange-500 to-orange-600",
     bgColor: "bg-orange-50",
     hoverColor: "hover:bg-orange-100",
-    details: ["Northern states delivery", "Fast processing", "Tracking available"]
+    details: ["Nationwide delivery", "Fast processing", "Tracking available"]
   },
   {
     id: 4,
@@ -65,7 +65,7 @@ const Features = () => {
             <span className="text-sm font-medium">Why Choose Us</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-            Experience the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Wayakart</span> Difference
+            Experience the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">PureLuxury</span> Difference
           </h2>
           <p className="text-gray-600 text-lg">
             Your trusted destination for premium electronics and exceptional service

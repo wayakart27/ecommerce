@@ -12,7 +12,7 @@ const testimonials = [
     role: "Tech Enthusiast",
     stars: 5,
     content:
-      "Wayakart has the best selection of smartphones in Nigeria. I got my latest flagship phone here at a great price with genuine warranty. Highly recommended!",
+      "PureLuxury has the best selection of smartphones in Nigeria. I got my latest flagship phone here at a great price with genuine warranty. Highly recommended!",
   },
   {
     id: 2,
@@ -20,7 +20,7 @@ const testimonials = [
     role: "Business Owner",
     stars: 5,
     content:
-      "We've purchased multiple laptops for our office from Wayakart. Their after-sales support is excellent and the products always arrive in perfect condition.",
+      "We've purchased multiple laptops for our office from PureLuxury. Their after-sales support is excellent and the products always arrive in perfect condition.",
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const testimonials = [
     role: "Student",
     stars: 4,
     content:
-      "Found the perfect budget laptop for my studies. Wayakart's delivery was faster than expected and the product works perfectly. Will shop here again!",
+      "Found the perfect budget laptop for my studies. PureLuxury's delivery was faster than expected and the product works perfectly. Will shop here again!",
   },
   {
     id: 4,
@@ -36,7 +36,7 @@ const testimonials = [
     role: "Graphic Designer",
     stars: 5,
     content:
-      "The MacBook Pro I bought from Wayakart transformed my workflow. Their customer service helped me choose the perfect specs for my design work.",
+      "The MacBook Pro I bought from PureLuxury transformed my workflow. Their customer service helped me choose the perfect specs for my design work.",
   },
   {
     id: 5,
@@ -52,7 +52,7 @@ const testimonials = [
     role: "Software Developer",
     stars: 5,
     content:
-      "As a developer, I need reliable hardware. Wayakart delivered exactly what I needed with competitive pricing and excellent customer support.",
+      "As a developer, I need reliable hardware. PureLuxury delivered exactly what I needed with competitive pricing and excellent customer support.",
   }
 ];
 
@@ -133,7 +133,7 @@ const Testimonials = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-gray-600 text-lg"
           >
-            Discover why thousands of customers choose Wayakart for their tech needs
+            Discover why thousands of customers choose PureLuxury for their tech needs
           </motion.p>
         </div>
 

@@ -180,7 +180,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md shadow-lg mx-auto my-4">
       <CardHeader className="flex flex-col items-center px-6 pt-4 pb-4 space-y-2">
-        <Image src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png" alt="Logo" width={120} height={60} className="rounded-lg object-cover" priority />
+        <Image src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png" alt="Logo" width={120} height={60} className="rounded-lg object-cover" priority />
         <div className="text-center space-y-1">
           <CardTitle className="text-2xl font-bold">
             {showTwoFactor ? "Two-Factor Verification" : "Welcome Back"}

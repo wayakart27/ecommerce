@@ -50,8 +50,8 @@ const Navbar = () => {
           <div className="flex items-center gap-2 md:gap-4">
             <Link href="/" className="hover:scale-105 transition-all duration-300 cursor-pointer">
               <Image 
-                src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png" 
-                alt="Wayakart Logo"
+                src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png" 
+                alt="PureLuxury Logo"
                 width={120}
                 height={40}
                 className="h-8 w-auto md:h-10"
@@ -60,7 +60,7 @@ const Navbar = () => {
             </Link>
             <div className="hidden sm:block">
               <h1 className="text-lg md:text-2xl font-bold text-white">
-                WayaKart
+                PureLuxury
               </h1>
             </div>
           </div>

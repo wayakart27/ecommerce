@@ -60,7 +60,7 @@ export default function NewVerificationPage() {
                     <CardHeader className="space-y-1">
                         <div className="flex justify-center mb-2">
                             <Image
-                               src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png"
+                               src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
                                 alt="Logo"
                                 width={120}
                                 height={60}

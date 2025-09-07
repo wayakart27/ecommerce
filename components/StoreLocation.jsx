@@ -6,11 +6,11 @@ import { motion } from "framer-motion";
 
 const StoreLocation = () => {
   const openGoogleMaps = () => {
-    window.open("https://www.google.com/maps/dir/?api=1&destination=Farm+Centre+Kano+Nigeria", "_blank");
+    window.open("https://www.google.com/maps/dir/?api=1&destination=Chilla+Plaza+Damaturu+Yobe+Nigeria", "_blank");
   };
 
   const openGoogleMapsDirections = () => {
-    window.open("https://www.google.com/maps/dir//Farm+Centre+Kano+Nigeria", "_blank");
+    window.open("https://www.google.com/maps/dir//Chilla+Plaza+Damaturu+Yobe+Nigeria", "_blank");
   };
 
   const fadeInUp = {
@@ -31,7 +31,7 @@ const StoreLocation = () => {
           className="text-center max-w-3xl mx-auto mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            Visit Our Store at Farm Centre Kano
+            Visit Our Store in Damaturu, Yobe
           </h2>
           <p className="text-gray-600 text-lg leading-relaxed">
             Experience the latest gadgets and electronics at our physical store. Get hands-on with devices before you make a purchase.
@@ -55,8 +55,8 @@ const StoreLocation = () => {
                   <div>
                     <h3 className="text-xl md:text-2xl font-semibold text-gray-800 mb-2 md:mb-3">Store Location</h3>
                     <p className="text-gray-600 md:text-lg leading-relaxed">
-                       No.7 Farm Centre,
-                      <br /> Kano, Nigeria
+                      Chilla Plaza, Shop No. 8, Along Gujba Road,
+                      <br /> Damaturu, Yobe State, Nigeria
                     </p>
                   </div>
                 </div>
@@ -89,7 +89,7 @@ const StoreLocation = () => {
                     <p className="text-blue-600 md:text-lg font-medium">08160126157, 08035318145</p>
                     <div className="flex items-center mt-1 md:mt-2">
                       <Mail className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-gray-500 text-sm md:text-base">wayakart27@gmail.com</span>
+                      <span className="text-gray-500 text-sm md:text-base">pureluxury247@gmail.com</span>
                     </div>
                   </div>
                 </div>
@@ -123,19 +123,19 @@ const StoreLocation = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-t from-blue-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none"></div>
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3900.223123456789!2d8.516997!3d12.002345!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTLCsDAwJzA4LjQiTiA4wrAzMScwMS4yIkU!5e0!3m2!1sen!2sng!4v1651234567890!5m2!1sen!2sng"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3900.223123456789!2d11.966997!3d11.748345!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTHCsDQ0JzU0LjQiTiAxMcKwNTgnMDEuMiJF!5e0!3m2!1sen!2sng!4v1651234567890!5m2!1sen!2sng"
               width="100%"
               height="100%"
               style={{ border: 0 }}
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="Wayakart Electronics Store at Farm Centre Kano"
+              title="PureLuxury Electronics Store at Chilla Plaza Damaturu"
               className="group-hover:scale-105 transition-transform duration-700"
             ></iframe>
             
             <div className="absolute bottom-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md">
-              <p className="text-xs font-medium text-gray-700">Farm Centre, Kano</p>
+              <p className="text-xs font-medium text-gray-700">Chilla Plaza, Along Gujba Road, Damaturu</p>
             </div>
           </motion.div>
         </div>

@@ -8,7 +8,7 @@ const Footer = () => {
       <div className="container px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
-            <h3 className="text-2xl font-bold text-blue-400 mb-6">Wayakart</h3>
+            <h3 className="text-2xl font-bold text-blue-400 mb-6">PureLuxury</h3>
             <p className="text-gray-300 mb-6">
               Your trusted destination for premium electronics - smartphones, laptops, and accessories 
               with genuine warranties and excellent customer service.
@@ -46,13 +46,13 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-300">wayakart27@gmail.com</span>
+                <span className="text-gray-300">pureluxury247@gmail.com</span>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <span className="text-gray-300">
-                  No.7 Farm Centre,<br />
-                  Kano, Nigeria
+                  Shop No. 8, Chilla Plaza, Along Gujba Road<br />
+                  Damaturu, Yobe State Nigeria
                 </span>
               </li>
             </ul>
@@ -78,7 +78,7 @@ const Footer = () => {
 
         <div className="mt-16 pt-6 border-t border-gray-700">
           <p className="text-center text-gray-500 text-sm">
-            © {new Date().getFullYear()} Wayakart Electronics. All rights reserved.
+            © {new Date().getFullYear()} PureLuxury Electronics. All rights reserved.
           </p>
         </div>
       </div>

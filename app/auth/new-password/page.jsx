@@ -113,7 +113,7 @@ export default function NewPasswordPage() {
           <CardHeader className="text-center space-y-1">
   <div className="flex justify-center">
     <img
-      src="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png"
+      src="https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png"
       alt="Logo"
       width={100}
       height={50}

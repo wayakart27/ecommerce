@@ -10,51 +10,58 @@ const sora = Sora({
 });
 
 export const metadata = {
-  title: "WayaKart - Buy New & Used Phones in Kano, Yobe, Kaduna, Maiduguri | #1 Electronics Store",
-  description: "Northern Nigeria's trusted electronics marketplace. Shop new & second-hand iPhone, Samsung, Tecno, Infinix in Kano (Kantin Kwari), Yobe (Damaturu), Kaduna with 6-month warranty. Hausa/English support.",
-  metadataBase: new URL('https://wayakart.com.ng'),
+  title: "PureLuxury - Buy New & Used Phones, Laptops Across Nigeria | Premium Electronics",
+  description: "Nigeria's trusted electronics marketplace. Shop new & second-hand iPhones, Samsung, Tecno, laptops nationwide. Premium quality with warranty.",
+  metadataBase: new URL('https://pureluxury.com.ng'),
   keywords: [
-    "WayaKart Kano",
+    "PureLuxury Nigeria",
+    "Lagos phones",
+    "Abuja used laptops",
+    "Port Harcourt electronics",
+    "Kano phones Kantin Kwari",
     "Yobe phones Damaturu",
+    "Borno phones Maiduguri",
     "Kaduna used laptops",
-    "Farm Centre online",
-    "Northern Nigeria phones",
-    "Arewa electronics",
-    "Hausa phone market",
-    "Cheap iPhone Kano",
-    "Tecno prices Yobe",
-    "Samsung deals Kaduna"
+    "Nigeria phones marketplace",
+    "Premium electronics Nigeria",
+    "New phones Nigeria",
+    "Second-hand laptops Nigeria",
+    "iPhone deals Lagos",
+    "Samsung prices Abuja",
+    "Tecno phones Kano",
+    "MacBook Nigeria",
+    "Northern Nigeria electronics",
+    "Southern Nigeria phones"
   ],
   openGraph: {
     type: "website",
-    url: "https://wayakart.com.ng/#products",
-    title: "WayaKart - Northern Nigeria's Electronics Marketplace",
-    description: "Best prices on phones & laptops across 19 Northern states",
-    siteName: "WayaKart Nigeria",
+    url: "https://pureluxury.com.ng",
+    title: "PureLuxury - Nigeria's Premium Electronics Marketplace",
+    description: "Best prices on new & used phones, laptops and electronics across all Nigerian states",
+    siteName: "PureLuxury Nigeria",
     images: [
       {
-        url: "https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png",
+        url: "https://res.cloudinary.com/djr7uqara/image/upload/v1757276957/x5jwhjxsbak613duhbn3.png",
         width: 800,
         height: 600,
-        alt: "WayaKart Logo - Your Northern Tech Marketplace"
+        alt: "PureLuxury Logo - Nigeria's Premium Electronics Marketplace"
       }
     ],
   },
   alternates: {
-    canonical: "https://wayakart.com.ng/#products",
+    canonical: "https://pureluxury.com.ng",
     languages: {
-      'ha': 'https://wayakart.com.ng/ha/#products',
-      'en': 'https://wayakart.com.ng/#products'
+      'en': 'https://pureluxury.com.ng'
     }
   }
 };
 
 export default async function RootLayout({ children, session }) {
   return (
-    <html lang="en-HA" className={`${sora.variable} font-sans`}>
+    <html lang="en" className={`${sora.variable} font-sans`}>
       <head>
-        <link rel="icon" href="https://res.cloudinary.com/djr7uqara/image/upload/v1753889584/simy5xzhfzlxxpdpgvlg.png" />
-        <link rel="canonical" href="https://wayakart.com.ng/#products" />
+        <link rel="icon" href="https://res.cloudinary.com/your-cloud-name/image/upload/your-favicon.png" />
+        <link rel="canonical" href="https://pureluxury.com.ng" />
       </head>
       <body className="min-h-screen">
         <AuthProvider>
@@ -70,11 +77,11 @@ export default async function RootLayout({ children, session }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              "name": "WayaKart",
-              "url": "https://wayakart.com.ng",
+              "name": "PureLuxury",
+              "url": "https://pureluxury.com.ng",
               "potentialAction": {
                 "@type": "ViewAction",
-                "target": "https://wayakart.com.ng/#products",
+                "target": "https://pureluxury.com.ng/#products",
                 "query-input": "required name=product_type"
               }
             })
@@ -88,14 +95,15 @@ export default async function RootLayout({ children, session }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Store",
-              "name": "WayaKart Electronics",
-              "url": "https://wayakart.com.ng/#products",
-              "priceRange": "₦10,000 - ₦1,200,000",
+              "name": "PureLuxury Electronics",
+              "url": "https://pureluxury.com.ng",
+              "priceRange": "₦10,000 - ₦2,500,000",
               "address": {
                 "@type": "PostalAddress",
-                "addressLocality": "Kano",
-                "addressRegion": "NG-KN",
-                "streetAddress": "Block 42, Farm Centre"
+                "addressCountry": "NG",
+                "addressLocality": "Damaturu",
+                "addressRegion": "NG-YO",
+                "streetAddress": "Chilla Plaza Shop No. 8, Along Gujba Road"
               },
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
@@ -104,12 +112,22 @@ export default async function RootLayout({ children, session }) {
                   {
                     "@type": "OfferCatalog",
                     "name": "Smartphones",
-                    "url": "https://wayakart.com.ng/#products"
+                    "url": "https://pureluxury.com.ng/#products"
                   },
                   {
                     "@type": "OfferCatalog",
-                    "name": "Laptops",
-                    "url": "https://wayakart.com.ng/#products"
+                    "name": "Laptops & Computers",
+                    "url": "https://pureluxury.com.ng/#products"
+                  },
+                  {
+                    "@type": "OfferCatalog",
+                    "name": "Tablets",
+                    "url": "https://pureluxury.com.ng/#products"
+                  },
+                  {
+                    "@type": "OfferCatalog",
+                    "name": "Accessories",
+                    "url": "https://pureluxury.com.ng/#products"
                   }
                 ]
               }
