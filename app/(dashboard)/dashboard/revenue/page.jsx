@@ -153,6 +153,16 @@ export default function RevenueDashboard() {
     });
   };
 
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getStatusBadge = (status) => {
     const statusColors = {
       pending: 'secondary',
@@ -339,7 +349,7 @@ export default function RevenueDashboard() {
         </CardContent>
       </Card>
 
-      {/* Revenue Table - Added Quantity column */}
+      {/* Revenue Table - Added Date column */}
       <Card>
         <CardHeader>
           <CardTitle>Revenue Details</CardTitle>
@@ -362,6 +372,7 @@ export default function RevenueDashboard() {
                     <TableRow>
                       <TableHead>S/N</TableHead>
                       <TableHead>Order ID</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead>Customer</TableHead>
                       <TableHead>Order Price</TableHead>
                       <TableHead>Items Cost</TableHead>
@@ -380,6 +391,11 @@ export default function RevenueDashboard() {
                       <TableRow key={item._id}>
                         <TableCell>{item.sn}</TableCell>
                         <TableCell className="font-medium">{item.orderId}</TableCell>
+                        <TableCell>
+                          <div className="text-sm text-muted-foreground">
+                            {item.paidAt ? formatDateTime(item.paidAt) : 'N/A'}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{item.user?.name || 'Unknown'}</div>

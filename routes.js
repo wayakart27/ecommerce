@@ -61,4 +61,4 @@ export const apiAuthPrefix = [
   '/api/two-factor/*',
 ];
 
-export const DEFAULT_LOGIN_REDIRECT = '/dashboard';
+export const DEFAULT_LOGIN_REDIRECT = '/';

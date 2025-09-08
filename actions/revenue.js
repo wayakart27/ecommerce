@@ -123,12 +123,12 @@ export async function getRevenueData({
 
     // Date range filter (UTC)
     if (startDate || endDate) {
-      query.createdAt = {};
+      query.paidAt = {};
       if (startDate) {
-        query.createdAt.$gte = convertToUTC(startDate);
+        query.paidAt.$gte = convertToUTC(startDate);
       }
       if (endDate) {
-        query.createdAt.$lte = convertToUTCEndOfDay(endDate);
+        query.paidAt.$lte = convertToUTCEndOfDay(endDate);
       }
     }
 
@@ -153,7 +153,7 @@ export async function getRevenueData({
             select: 'name email'
           }
         ])
-        .sort({ createdAt: -1 })
+        .sort({ paidAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -198,7 +198,7 @@ export async function getRevenueData({
         sn: skip + index + 1,
         _id: serialized._id,
         orderId: serialized.orderId,
-        createdAt: serialized.createdAt.toISOString(),
+        paidAt: serialized.paidAt.toISOString(),
         user: serialized.user,
         profitLoss: parseFloat(totalProfitLoss.toFixed(2)),
         shippingFee: parseFloat(serialized.shippingPrice.toFixed(2)),
