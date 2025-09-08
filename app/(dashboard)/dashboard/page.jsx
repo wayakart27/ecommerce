@@ -469,7 +469,7 @@ const CustomerDashboard = ({ data }) => (
                   <TableCell className="text-right">{product?.price}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="link" size="sm">
-                      <Link href={`/product/${product?._id}`}>
+                      <Link href={`/product/${product.slug}-${product.productId}`}>
                         View <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>

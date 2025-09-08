@@ -357,7 +357,7 @@ export const getCustomerDashboardData = async (userId) => {
       Products.find()
         .sort({ createdAt: -1 })
         .limit(5)
-        .select("name defaultImage price slug")
+        .select("name defaultImage price slug productId")
         .lean(),
     ]);
 

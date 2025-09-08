@@ -392,7 +392,7 @@ const FeaturedProducts = () => {
                             onClick={(e) => handleWishlistToggle(product.id, e)}
                           >
                             <Heart
-                              className={`w-4 w-4 transition-colors ${
+                              className={`w-4 transition-colors ${
                                 wishlist.includes(product.id) ? "text-red-500 fill-red-500" : "text-gray-500"
                               }`}
                             />
@@ -422,7 +422,7 @@ const FeaturedProducts = () => {
                           <div className="flex items-center gap-3">
                             {product.category && (
                               <div className="flex items-center gap-1">
-                                <Tag className="w-3 w-3 text-gray-500" />
+                                <Tag className="w-3 text-gray-500" />
                                 <span className="text-xs text-gray-500 capitalize">{product.category}</span>
                               </div>
                             )}
