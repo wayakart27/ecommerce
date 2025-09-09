@@ -275,34 +275,6 @@ const FeaturedProducts = () => {
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">Premium phones, laptops, and accessories with cutting-edge technology</p>
         </div>
 
-        {/* Features Banner - Updated with new features */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
-            <div className="w-10 h-10 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
-              <Zap className="h-5 w-5 text-blue-600" />
-            </div>
-            <p className="text-sm font-medium text-gray-700">Latest Tech</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
-            <div className="w-10 h-10 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
-              <Star className="h-5 w-5 text-green-600" />
-            </div>
-            <p className="text-sm font-medium text-gray-700">Premium Quality</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
-            <div className="w-10 h-10 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
-              <MessageCircle className="h-5 w-5 text-purple-600" />
-            </div>
-            <p className="text-sm font-medium text-gray-700">24/7 Support</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm text-center">
-            <div className="w-10 h-10 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-2">
-              <ArrowRight className="h-5 w-5 text-orange-600" />
-            </div>
-            <p className="text-sm font-medium text-gray-700">Easy Returns</p>
-          </div>
-        </div>
-
         {/* Mobile Category Toggle Button */}
         <button
           onClick={() => setMobileSidebarOpen(true)}

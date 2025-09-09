@@ -141,11 +141,6 @@ export default function ProductPage() {
       title: "Fast Delivery",
       description: "Quick shipping"
     },
-    {
-      icon: <RotateCcw className="h-5 w-5 text-orange-600" />,
-      title: "Easy Returns",
-      description: "7-day return policy"
-    }
   ];
 
   if (loading) {
