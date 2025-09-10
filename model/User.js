@@ -7,6 +7,147 @@ const generateReferralCode = () => {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 };
 
+// Define the referral sub-schemas first
+const pendingReferralSchema = new mongoose.Schema({
+  referee: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  order: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Order', 
+    default: null 
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  hasPurchased: {
+    type: Boolean,
+    default: false
+  },
+  signupIp: String,
+  deviceInfo: String
+}, { _id: false });
+
+const completedReferralSchema = new mongoose.Schema({
+  referee: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  order: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Order',
+    default: null
+  },
+  amount: Number,
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'rejected'],
+    default: 'pending'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'success', 'rejected', 'failed', 'processing'],
+    default: 'pending'
+  },
+  paymentRequest: {
+    type: Boolean,
+    default: false
+  }
+}, { _id: false });
+
+const payoutHistorySchema = new mongoose.Schema({
+  amount: Number,
+  requestedAt: {
+    type: Date,
+    default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'success', 'rejected', 'failed', 'processing'],
+    default: 'pending'
+  },
+  bankDetails: {
+    accountName: String,
+    accountNumber: String,
+    bankCode: String,
+    verified: { 
+      type: Boolean, 
+      default: false 
+    }
+  },
+  paystackReference: String,
+  processedAt: Date
+}, { _id: false });
+
+const bankDetailsSchema = new mongoose.Schema({
+  accountName: String,
+  accountNumber: String,
+  bankCode: String,
+  verified: { 
+    type: Boolean, 
+    default: false 
+  }
+}, { _id: false });
+
+const referralProgramSchema = new mongoose.Schema({
+  referralCode: {
+    type: String,
+    unique: true,
+    default: generateReferralCode,
+    trim: true,
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  pendingReferrals: [pendingReferralSchema],
+  completedReferrals: [completedReferralSchema],
+  paystackRecipientCode: String,
+  bankDetails: bankDetailsSchema,
+  minPayoutAmount: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'ReferralPayoutSettings' 
+  },
+  payoutHistory: [payoutHistorySchema]
+}, { _id: false });
+
+const deviceSchema = new mongoose.Schema({
+  userAgent: String,
+  ipAddress: String,
+  firstSeen: {
+    type: Date,
+    default: Date.now
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
+
+const complianceSchema = new mongoose.Schema({
+  signupIp: String,
+  signupUserAgent: String,
+  devices: [deviceSchema],
+  lastLogin: Date,
+  lastIp: String,
+  kycVerified: { 
+    type: Boolean, 
+    default: false 
+  },
+  consentTimestamp: Date
+}, { _id: false });
+
 const userSchema = new mongoose.Schema(
   {
     // Basic User Information
@@ -62,129 +203,10 @@ const userSchema = new mongoose.Schema(
     },
 
     // Referral Program
-    referralProgram: {
-      referralCode: {
-        type: String,
-        unique: true,
-        default: generateReferralCode,
-        trim: true,
-      },
-      referredBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      pendingReferrals: [{
-        referee: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'User' 
-        },
-        order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null }, // Add this
-        date: {
-          type: Date,
-          default: Date.now
-        },
-        hasPurchased: {
-          type: Boolean,
-          default: false
-        },
-        signupIp: String,
-        deviceInfo: String
-      }],
-      completedReferrals: [{
-        referee: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'User' 
-        },
-        order: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'Order',
-          default: null
-        },
-        amount: Number,
-        date: {
-          type: Date,
-          default: Date.now
-        },
-        status: {
-          type: String,
-          enum: ['pending', 'completed', 'rejected'],
-          default: 'pending'
-        },
-        paymentStatus: {
-          type: String,
-          enum: ['pending', 'success', 'rejected', 'failed', 'processing'],
-          default: 'pending'
-        },
-        paymentRequest: {
-          type: Boolean,
-          default: false
-        }
-      }],
-      paystackRecipientCode: String,
-      bankDetails: {
-        accountName: String,
-        accountNumber: String,
-        bankCode: String,
-        verified: { 
-          type: Boolean, 
-          default: false 
-        }
-      },
-      minPayoutAmount: { type: mongoose.Schema.Types.ObjectId, ref: 'ReferralPayoutSettings' }, // Add this
-      payoutHistory: [{
-        amount: Number,
-        requestedAt: {
-          type: Date,
-          default: Date.now
-        },
-        status: {
-          type: String,
-          enum: ['pending', 'processing', 'completed', 'failed'],
-          default: 'pending'
-        },
-        paymentStatus: {
-           type: String,
-           enum:  ['pending', 'success', 'rejected', 'failed', 'processing'],
-           default: 'pending'
-        },
-        bankDetails: {
-        accountName: String,
-        accountNumber: String,
-        bankCode: String,
-        verified: { 
-          type: Boolean, 
-          default: false 
-        }
-      },
-        paystackReference: String,
-        processedAt: Date
-      }],
-    },
+    referralProgram: referralProgramSchema,
 
     // Compliance & Tracking
-    compliance: {
-      signupIp: String,
-      signupUserAgent: String,
-      devices: [{
-        userAgent: String,
-        ipAddress: String,
-        firstSeen: {
-          type: Date,
-          default: Date.now
-        },
-        lastSeen: {
-          type: Date,
-          default: Date.now
-        }
-      }],
-      lastLogin: Date,
-      lastIp: String,
-      kycVerified: { 
-        type: Boolean, 
-        default: false 
-      },
-      consentTimestamp: Date
-    },
+    compliance: complianceSchema,
     
     // Purchase Tracking
     hasMadePurchase: {

@@ -100,10 +100,12 @@ export const getReferralData = async (userId) => {
         .populate({
           path: "referralProgram.pendingReferrals.referee",
           select: "name email createdAt",
+          strictPopulate: false // Add this to fix the error
         })
         .populate({
           path: "referralProgram.completedReferrals.referee",
           select: "name email",
+          strictPopulate: false // Add this to fix the error
         })
         .lean(),
       User.aggregate([
