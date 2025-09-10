@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -21,7 +20,6 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import Image from "next/image";
 import {
@@ -52,7 +50,8 @@ import { states } from "@/data/states";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createOrder, verifyPaystackPayment } from "@/actions/order";
 import { getProductById } from "@/actions/products";
-import { calculateShippingCost } from "@/actions/shipping"; // ADD THIS IMPORT
+import { calculateShippingCost } from "@/actions/shipping";
+import { useCart } from "@/hooks/useCart";
 
 // Form Schema
 const formSchema = z.object({
@@ -391,6 +390,7 @@ const AddressForm = ({ onSubmit, onCancel, defaultValues, isProcessing }) => {
             type="submit"
             className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white"
             disabled={isProcessing}
+            onClick={form.handleSubmit(onSubmit)}
           >
             {isProcessing
               ? "Processing..."
@@ -404,7 +404,7 @@ const AddressForm = ({ onSubmit, onCancel, defaultValues, isProcessing }) => {
   );
 };
 
-// Address Card Component - Updated with responsive icons
+// Address Card Component
 const AddressCard = ({
   address,
   isSelected,
@@ -766,6 +766,7 @@ const CheckoutPage = () => {
         }
         setShowAddressForm(false);
         setEditingAddress(null);
+        toast.success("Address saved successfully");
       }
     } catch (error) {
       toast.error("Address save failed");
@@ -933,13 +934,9 @@ const CheckoutPage = () => {
                 return;
               }
 
-              // Clear cart and show loader before redirect
+              // Clear cart and redirect to transaction confirmation page
               clearCart(false);
-              setShowRedirectLoader(true); // Show skeleton loader
-
-              setTimeout(() => {
-                router.push(`/dashboard/my-order/${order._id}`);
-              }, 2000); // Show loader for 2 seconds before redirect
+              router.push(`/transaction/${order._id}`);
             } catch (error) {
               toast.error(error.message || "Payment verification failed");
             } finally {

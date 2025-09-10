@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }) {
     if (status === "loading") return; // Wait for session to load
     
     if (!session) {
-      router.push("/auth/login");
+      router.push("/");
     }
   }, [session, status, router]);
 

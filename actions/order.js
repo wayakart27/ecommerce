@@ -464,7 +464,7 @@ export const getOrderById = async (orderId) => {
       .populate({
         path: "orderItems.product",
         model: Products, // Explicitly specify the model
-        select: "name image price slug", // Select specific fields
+        select: "name defaultImage price slug", // Select specific fields
       });
 
     if (!order) {

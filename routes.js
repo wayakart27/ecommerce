@@ -39,12 +39,14 @@ export const adminRoutes = [
   '/dashboard/new-arrivals',
   '/dashboard/new-arrivals/*',
   '/dashboard/settings',
+  '/transaction/[id]',
 ];
 
 export const userRoutes = [
   '/dashboard/orders',
   '/dashboard/orders/*',
   '/dashboard/settings',
+  '/transaction/[id]',
 ];
 
 export const customerRoutes = [
@@ -52,6 +54,7 @@ export const customerRoutes = [
   '/dashboard/my-order/*',
   '/dashboard/my-referral',
   '/dashboard/settings',
+  '/transaction/[id]',
 ];
 
 export const apiAuthPrefix = [
