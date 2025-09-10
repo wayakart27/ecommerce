@@ -98,14 +98,20 @@ export const getReferralData = async (userId) => {
       User.findById(userId)
         .select("name email referralProgram")
         .populate({
-          path: "referralProgram.pendingReferrals.referee",
-          model: "User", // must specify model for nested populate
-          select: "name email createdAt",
+          path: "referralProgram.pendingReferrals",
+          populate: {
+            path: "referee",
+            model: "User",
+            select: "name email createdAt",
+          },
         })
         .populate({
-          path: "referralProgram.completedReferrals.referee",
-          model: "User",
-          select: "name email",
+          path: "referralProgram.completedReferrals",
+          populate: {
+            path: "referee",
+            model: "User",
+            select: "name email",
+          },
         })
         .lean(),
       User.aggregate([

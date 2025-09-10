@@ -931,15 +931,18 @@ const CheckoutPage = () => {
 
               if (!paymentSuccess) {
                 toast.error(paymentMessage);
+                setIsProcessingPayment(false);
                 return;
               }
 
-              // Clear cart and redirect to transaction confirmation page
+              // Clear cart and immediately redirect to transaction page
               clearCart(false);
+              // Show redirect loader to prevent showing dashboard/cart
+              setShowRedirectLoader(true);
+              // Immediately redirect to transaction page
               router.push(`/transaction/${order._id}`);
             } catch (error) {
               toast.error(error.message || "Payment verification failed");
-            } finally {
               setIsProcessingPayment(false);
             }
           })();
