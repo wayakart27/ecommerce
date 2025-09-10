@@ -82,14 +82,25 @@ export default function DashboardLayout({ children }) {
     getEffectivePrice,
   } = useCart();
 
-  const { data: session } = useSession();
+  const { data: session, status  } = useSession();
   const userRole = session?.user?.role;
+
+    // Check if session is not active and redirect to home page
+  useEffect(() => {
+    if (status === "loading") return; // Wait for session to load
+    
+    if (!session) {
+      router.push("/auth/login");
+    }
+  }, [session, status, router]);
+
 
   useEffect(() => {
     if (isMobile) {
       setIsSidebarOpen(false);
     }
   }, [pathname, isMobile]);
+
 
   const adminNavItems = [
     { title: "Dashboard", href: "/dashboard", icon: Home, exact: true },

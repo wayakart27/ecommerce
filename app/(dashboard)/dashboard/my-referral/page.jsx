@@ -43,6 +43,17 @@ import { verifyAccountNumber, updateBankDetailsWithVerification } from "@/action
 
 const ITEMS_PER_PAGE = 10
 
+// Base URL configuration for API calls
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use current origin
+    return window.location.origin;
+  }
+  
+  // Server-side: use environment variable or default to localhost
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+};
+
 export default function ReferralBonusPage() {
   const [userData, setUserData] = useState(null)
   const [referrals, setReferrals] = useState([])
@@ -92,7 +103,7 @@ export default function ReferralBonusPage() {
   const [verificationLoading, setVerificationLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const userId = session?.user?.id
 
   const formatNaira = (amount) => {
@@ -106,6 +117,18 @@ export default function ReferralBonusPage() {
     try {
       setLoading(true)
       setError(null)
+
+      // Check if session is still loading
+      if (status === "loading") {
+        return;
+      }
+
+      // Check if user is authenticated
+      if (!userId) {
+        setError("User not authenticated. Please sign in.");
+        setLoading(false);
+        return;
+      }
 
       const validReferralTypes = ["pending", "completed"]
       const referralType = validReferralTypes.includes(activeTab) ? activeTab : ""
@@ -157,17 +180,17 @@ export default function ReferralBonusPage() {
       }
     } catch (error) {
       console.error("Fetch error:", error)
-      setError(error.message || "Failed to load data")
+      setError(error.message || "Failed to load data. Please check your connection and try again.")
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (userId) {
+    if (userId && status === "authenticated") {
       fetchData()
     }
-  }, [userId, currentPage, activeTab])
+  }, [userId, currentPage, activeTab, status])
 
   const handleTabChange = (tab) => {
     const validTabs = ["pending", "completed", "payouts"]
@@ -220,7 +243,7 @@ export default function ReferralBonusPage() {
         toast.error(response.message || "Account verification failed")
       }
     } catch (error) {
-      toast.error("Failed to verify account")
+      toast.error("Failed to verify account. Please try again.")
       console.error(error)
     } finally {
       setVerificationLoading(false)
@@ -251,7 +274,7 @@ export default function ReferralBonusPage() {
         toast.error(response.message || "Failed to update bank details")
       }
     } catch (error) {
-      toast.error("Failed to update bank details")
+      toast.error("Failed to update bank details. Please try again.")
       console.error(error)
     } finally {
       setActionLoading(false)
@@ -280,7 +303,7 @@ export default function ReferralBonusPage() {
         toast.error(response.message || "Failed to request payout")
       }
     } catch (error) {
-      toast.error("Failed to request payout")
+      toast.error("Failed to request payout. Please try again.")
       console.error(error)
     } finally {
       setActionLoading(false)
@@ -314,6 +337,26 @@ export default function ReferralBonusPage() {
     } else {
       copyReferralLink()
     }
+  }
+
+  // Show loading state while checking authentication
+  if (status === "loading") {
+    return <LoadingSkeleton />
+  }
+
+  // Show error if not authenticated
+  if (status === "unauthenticated") {
+    return (
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-center max-w-md mx-auto">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+          </div>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-sm text-gray-500 mb-6">Please sign in to access the referral program.</p>
+        </div>
+      </div>
+    )
   }
 
   if (loading && !userData && !error) {
