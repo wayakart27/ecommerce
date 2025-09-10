@@ -86,7 +86,7 @@ const StoreLocation = () => {
                   </div>
                   <div>
                     <h3 className="text-xl md:text-2xl font-semibold text-gray-800 mb-2 md:mb-3">Contact Us</h3>
-                    <p className="text-blue-600 md:text-lg font-medium">08160126157, 08035318145</p>
+                    <p className="text-blue-600 md:text-lg font-medium">08160126157</p>
                     <div className="flex items-center mt-1 md:mt-2">
                       <Mail className="h-4 w-4 text-gray-500 mr-2" />
                       <span className="text-gray-500 text-sm md:text-base">pureluxury247@gmail.com</span>
