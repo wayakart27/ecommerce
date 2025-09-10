@@ -134,10 +134,11 @@ export default function DashboardLayout({ children }) {
     return pathname.startsWith(item.href);
   };
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push("/auth/login");
-  };
+const handleLogout = async () => {
+  await signOut({ redirect: false });
+  router.replace("/"); // replaces history so back button won't return to old page
+};
+
 
   const handleClearCartWithToast = () => {
     clearCart();
