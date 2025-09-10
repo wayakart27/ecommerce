@@ -1,5 +1,5 @@
 // actions/referrals.js
-'use server';
+"use server";
 
 import mongoose from "mongoose";
 import User from "@/model/User";
@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 
 const formatNaira = (amount) => {
   try {
-    const value = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+    const value = typeof amount === "number" ? amount : parseFloat(amount) || 0;
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -19,8 +19,8 @@ const formatNaira = (amount) => {
       maximumFractionDigits: 2,
     }).format(value / 100);
   } catch (error) {
-    console.error('Formatting error:', error);
-    return '₦0.00';
+    console.error("Formatting error:", error);
+    return "₦0.00";
   }
 };
 
@@ -29,29 +29,29 @@ const ensureSettingsExist = async () => {
     let settings = await ReferralPayoutSettings.findOne();
     if (!settings) {
       settings = await ReferralPayoutSettings.create({});
-      console.log('Created default referral settings');
+      console.log("Created default referral settings");
     }
     return settings;
   } catch (error) {
-    console.error('Error ensuring settings exist:', error);
+    console.error("Error ensuring settings exist:", error);
     throw error;
   }
 };
 
 const safeSerialize = (data) => {
   const seen = new WeakSet();
-  
+
   const serialize = (value) => {
-    if (value === null || typeof value !== 'object') return value;
-    if (seen.has(value)) return '[Circular]';
+    if (value === null || typeof value !== "object") return value;
+    if (seen.has(value)) return "[Circular]";
     seen.add(value);
-    
+
     if (value instanceof mongoose.Types.ObjectId) return value.toString();
     if (value instanceof mongoose.Document) return serialize(value.toObject());
-    if (Buffer.isBuffer(value)) return value.toString('base64');
+    if (Buffer.isBuffer(value)) return value.toString("base64");
     if (value instanceof Date) return value.toISOString();
     if (Array.isArray(value)) return value.map(serialize);
-    
+
     const result = {};
     for (const key in value) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
@@ -60,11 +60,11 @@ const safeSerialize = (data) => {
     }
     return result;
   };
-  
+
   try {
     return JSON.parse(JSON.stringify(serialize(data)));
   } catch (error) {
-    console.error('Serialization error:', error);
+    console.error("Serialization error:", error);
     return null;
   }
 };
@@ -74,12 +74,12 @@ const getPayoutSettings = async () => {
     let settings = await ReferralPayoutSettings.findOne();
     if (!settings) {
       settings = await ReferralPayoutSettings.create({});
-      console.log('Created default payout settings');
+      console.log("Created default payout settings");
     }
     return settings;
   } catch (error) {
-    console.error('Error getting payout settings:', error);
-    throw new Error('Failed to initialize payout settings');
+    console.error("Error getting payout settings:", error);
+    throw new Error("Failed to initialize payout settings");
   }
 };
 
@@ -99,70 +99,121 @@ export const getReferralData = async (userId) => {
         .select("name email referralProgram")
         .populate({
           path: "referralProgram.pendingReferrals.referee",
+          model: "User", // must specify model for nested populate
           select: "name email createdAt",
-          strictPopulate: false // Add this to fix the error
         })
         .populate({
           path: "referralProgram.completedReferrals.referee",
+          model: "User",
           select: "name email",
-          strictPopulate: false // Add this to fix the error
         })
         .lean(),
       User.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-        { $unwind: { path: "$referralProgram.completedReferrals", preserveNullAndEmptyArrays: true } },
-        { $group: {
-          _id: null,
-          totalEarned: {
-            $sum: {
-              $cond: [
-                { 
-                  $and: [
-                    { $eq: ["$referralProgram.completedReferrals.status", "completed"] },
-                    { $eq: ["$referralProgram.completedReferrals.paymentStatus", 'success'] },
-                    { $eq: ["$referralProgram.completedReferrals.paymentRequest", true] }
-                  ]
-                },
-                { $ifNull: ["$referralProgram.completedReferrals.amount", 0] },
-                0
-              ]
-            }
+        {
+          $unwind: {
+            path: "$referralProgram.completedReferrals",
+            preserveNullAndEmptyArrays: true,
           },
-          pendingEarnings: {
-            $sum: {
-              $cond: [
-                { 
-                  $and: [
-                    { $eq: ["$referralProgram.completedReferrals.status", "pending"] },
-                    { $eq: ["$referralProgram.completedReferrals.paymentStatus", 'pending'] },
-                    { $eq: ["$referralProgram.completedReferrals.paymentRequest", false] }
-                  ]
-                },
-                { $ifNull: ["$referralProgram.completedReferrals.amount", 0] },
-                0
-              ]
-            }
+        },
+        {
+          $group: {
+            _id: null,
+            totalEarned: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.status",
+                          "completed",
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.paymentStatus",
+                          "success",
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.paymentRequest",
+                          true,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $ifNull: ["$referralProgram.completedReferrals.amount", 0],
+                  },
+                  0,
+                ],
+              },
+            },
+            pendingEarnings: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.status",
+                          "pending",
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.paymentStatus",
+                          "pending",
+                        ],
+                      },
+                      {
+                        $eq: [
+                          "$referralProgram.completedReferrals.paymentRequest",
+                          false,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $ifNull: ["$referralProgram.completedReferrals.amount", 0],
+                  },
+                  0,
+                ],
+              },
+            },
+            totalCompleted: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$referralProgram.completedReferrals.status",
+                      "completed",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            totalPending: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$referralProgram.completedReferrals.status",
+                      "pending",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
           },
-          totalCompleted: {
-            $sum: {
-              $cond: [
-                { $eq: ["$referralProgram.completedReferrals.status", "completed"] },
-                1,
-                0
-              ]
-            }
-          },
-          totalPending: {
-            $sum: {
-              $cond: [
-                { $eq: ["$referralProgram.completedReferrals.status", "pending"] },
-                1,
-                0
-              ]
-            }
-          }
-        }}
-      ])
+        },
+      ]),
     ]);
 
     if (!user) {
@@ -172,18 +223,22 @@ export const getReferralData = async (userId) => {
     const referralProgram = user.referralProgram || {};
 
     // Process pending and completed referrals
-    const pendingReferrals = (referralProgram.pendingReferrals || []).map(ref => ({
-      ...safeSerialize(ref),
-      referee: ref.referee ? safeSerialize(ref.referee) : null,
-      date: ref.date?.toISOString() || new Date().toISOString()
-    }));
+    const pendingReferrals = (referralProgram.pendingReferrals || []).map(
+      (ref) => ({
+        ...safeSerialize(ref),
+        referee: ref.referee ? safeSerialize(ref.referee) : null,
+        date: ref.date?.toISOString() || new Date().toISOString(),
+      })
+    );
 
-    const completedReferrals = (referralProgram.completedReferrals || []).map(ref => ({
-      ...safeSerialize(ref),
-      referee: ref.referee ? safeSerialize(ref.referee) : null,
-      amount: ref.amount || 0,
-      date: ref.date?.toISOString() || new Date().toISOString()
-    }));
+    const completedReferrals = (referralProgram.completedReferrals || []).map(
+      (ref) => ({
+        ...safeSerialize(ref),
+        referee: ref.referee ? safeSerialize(ref.referee) : null,
+        amount: ref.amount || 0,
+        date: ref.date?.toISOString() || new Date().toISOString(),
+      })
+    );
 
     return {
       success: true,
@@ -197,18 +252,20 @@ export const getReferralData = async (userId) => {
           totalCompleted: referralStats[0]?.totalCompleted || 0,
           totalPending: referralStats[0]?.totalPending || 0,
           minPayoutAmount: settings.minPayoutAmount,
-          referralPercentage: settings.referralPercentage
+          referralPercentage: settings.referralPercentage,
         },
-        referralLink: `${process.env.NEXTAUTH_URL}/auth/register?ref=${referralProgram.referralCode || ''}`
+        referralLink: `${process.env.NEXTAUTH_URL}/auth/register?ref=${
+          referralProgram.referralCode || ""
+        }`,
       },
       message: "Referral data retrieved successfully",
     };
   } catch (error) {
     console.error("Get referral data error:", error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: "Failed to retrieve referral data",
-      error: error.message 
+      error: error.message,
     };
   }
 };
@@ -262,11 +319,16 @@ export const getReferralList = async ({
       const bAmount = b.amount || 0;
 
       switch (sort) {
-        case "-date": return bDate - aDate;
-        case "date": return aDate - bDate;
-        case "-amount": return bAmount - aAmount;
-        case "amount": return aAmount - bAmount;
-        default: return bDate - aDate;
+        case "-date":
+          return bDate - aDate;
+        case "date":
+          return aDate - bDate;
+        case "-amount":
+          return bAmount - aAmount;
+        case "amount":
+          return aAmount - bAmount;
+        default:
+          return bDate - aDate;
       }
     };
 
@@ -292,12 +354,14 @@ export const getReferralList = async ({
         formattedDate: date.toLocaleDateString(),
         amount: referral.amount || 0,
         formattedAmount: formatNaira(referral.amount || 0),
-        order: order.orderId ? {
-          id: order._id?.toString(),
-          orderId: order.orderId,
-          totalPrice: order.totalPrice || 0,
-          formattedTotal: formatNaira(order.totalPrice || 0),
-        } : null,
+        order: order.orderId
+          ? {
+              id: order._id?.toString(),
+              orderId: order.orderId,
+              totalPrice: order.totalPrice || 0,
+              formattedTotal: formatNaira(order.totalPrice || 0),
+            }
+          : null,
         hasPurchased: referral.hasPurchased || false,
         status: referral.status || "pending",
       };
@@ -313,10 +377,10 @@ export const getReferralList = async ({
     };
   } catch (error) {
     console.error("Get referral list error:", error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: `Failed to retrieve ${type} referrals`,
-      error: error.message 
+      error: error.message,
     };
   }
 };
@@ -351,7 +415,7 @@ export const getReferralList = async ({
 //     }
 
 //     let payouts = user.referralProgram?.payoutHistory || [];
-    
+
 //     if (status) {
 //       payouts = payouts.filter(p => p.status === status);
 //     }
@@ -404,10 +468,10 @@ export const getReferralList = async ({
 //     };
 //   } catch (error) {
 //     console.error("Get payout history error:", error);
-//     return { 
-//       success: false, 
+//     return {
+//       success: false,
 //       message: "Failed to retrieve payout history",
-//       error: error.message 
+//       error: error.message
 //     };
 //   }
 // };
@@ -421,7 +485,10 @@ export const updateBankDetails = async (userId, bankDetails) => {
     }
 
     if (!bankDetails?.accountNumber || !bankDetails?.bankCode) {
-      return { success: false, message: "Account number and bank code are required" };
+      return {
+        success: false,
+        message: "Account number and bank code are required",
+      };
     }
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -429,23 +496,27 @@ export const updateBankDetails = async (userId, bankDetails) => {
     }
 
     const verificationResponse = await fetch(
-      `https://api.paystack.co/bank/resolve?account_number=${encodeURIComponent(bankDetails.accountNumber)}&bank_code=${encodeURIComponent(bankDetails.bankCode)}`,
+      `https://api.paystack.co/bank/resolve?account_number=${encodeURIComponent(
+        bankDetails.accountNumber
+      )}&bank_code=${encodeURIComponent(bankDetails.bankCode)}`,
       {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        }
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
     const verificationData = await verificationResponse.json();
 
     if (!verificationData.status) {
-      console.error(`Paystack verification failed: ${verificationData.message}`);
-      return { 
-        success: false, 
-        message: verificationData.message || "Account verification failed" 
+      console.error(
+        `Paystack verification failed: ${verificationData.message}`
+      );
+      return {
+        success: false,
+        message: verificationData.message || "Account verification failed",
       };
     }
 
@@ -458,7 +529,7 @@ export const updateBankDetails = async (userId, bankDetails) => {
             accountNumber: bankDetails.accountNumber,
             bankCode: bankDetails.bankCode,
             verified: true,
-            lastVerified: new Date()
+            lastVerified: new Date(),
           },
         },
       },
@@ -476,22 +547,35 @@ export const updateBankDetails = async (userId, bankDetails) => {
     };
   } catch (error) {
     console.error("Update bank details error:", error);
-    return { 
-      success: false, 
-      message: error.message || "Failed to update bank details" 
+    return {
+      success: false,
+      message: error.message || "Failed to update bank details",
     };
   }
 };
 
-export const updateReferralSettings = async ({ minPayoutAmount, referralPercentage }) => {
+export const updateReferralSettings = async ({
+  minPayoutAmount,
+  referralPercentage,
+}) => {
   try {
     await dbConnect();
 
-    if (typeof minPayoutAmount !== 'number' || minPayoutAmount < 10000) {
-      return { success: false, message: 'Minimum payout must be at least ₦100' };
+    if (typeof minPayoutAmount !== "number" || minPayoutAmount < 10000) {
+      return {
+        success: false,
+        message: "Minimum payout must be at least ₦100",
+      };
     }
-    if (typeof referralPercentage !== 'number' || referralPercentage < 0 || referralPercentage > 100) {
-      return { success: false, message: 'Referral percentage must be between 0-100%' };
+    if (
+      typeof referralPercentage !== "number" ||
+      referralPercentage < 0 ||
+      referralPercentage > 100
+    ) {
+      return {
+        success: false,
+        message: "Referral percentage must be between 0-100%",
+      };
     }
 
     const settings = await ReferralPayoutSettings.findOneAndUpdate(
@@ -502,114 +586,134 @@ export const updateReferralSettings = async ({ minPayoutAmount, referralPercenta
 
     await User.updateMany(
       {},
-      { $set: { 'referralProgram.minPayoutAmount': settings._id } }
+      { $set: { "referralProgram.minPayoutAmount": settings._id } }
     );
 
-    revalidatePath('/admin/referrals');
-    return { 
-      success: true, 
+    revalidatePath("/admin/referrals");
+    return {
+      success: true,
       data: {
         minPayoutAmount: settings.minPayoutAmount,
-        referralPercentage: settings.referralPercentage
+        referralPercentage: settings.referralPercentage,
       },
-      message: 'Referral settings updated successfully' 
+      message: "Referral settings updated successfully",
     };
   } catch (error) {
-    console.error('Update referral settings error:', error);
-    return { 
-      success: false, 
-      message: 'Failed to update referral settings',
-      error: error.message 
+    console.error("Update referral settings error:", error);
+    return {
+      success: false,
+      message: "Failed to update referral settings",
+      error: error.message,
     };
   }
 };
 
 export const requestPayout = async (userId) => {
   try {
-    await dbConnect()
-    const settings = await getPayoutSettings()
+    await dbConnect();
+    const settings = await getPayoutSettings();
 
     // Validate user ID
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return { success: false, message: "Invalid user ID" }
+      return { success: false, message: "Invalid user ID" };
     }
 
     // Get user with necessary referral data including bank details
     const user = await User.findById(userId)
       .select(
-        "referralProgram.bankDetails referralProgram.minPayoutAmount referralProgram.completedReferrals referralProgram.payoutHistory",
+        "referralProgram.bankDetails referralProgram.minPayoutAmount referralProgram.completedReferrals referralProgram.payoutHistory"
       )
       .populate({
         path: "referralProgram.minPayoutAmount",
         select: "minPayoutAmount",
       })
-      .lean()
+      .lean();
 
     if (!user) {
-      return { success: false, message: "User not found" }
+      return { success: false, message: "User not found" };
     }
 
-    const { referralProgram } = user
+    const { referralProgram } = user;
 
     const hasPendingPayouts = referralProgram.payoutHistory?.some(
       (payout) =>
-        payout.status === "pending" || payout.paymentStatus === "pending" || payout.paymentStatus === "processing",
-    )
+        payout.status === "pending" ||
+        payout.paymentStatus === "pending" ||
+        payout.paymentStatus === "processing"
+    );
 
     const hasPendingReferrals = referralProgram.completedReferrals?.some(
       (referral) =>
         referral.paymentStatus === "processing" ||
-        (referral.status === "completed" && referral.paymentStatus === "pending"),
-    )
+        (referral.status === "completed" &&
+          referral.paymentStatus === "pending")
+    );
 
     if (hasPendingPayouts || hasPendingReferrals) {
       const pendingCount =
         (referralProgram.payoutHistory?.filter(
           (payout) =>
-            payout.status === "pending" || payout.paymentStatus === "pending" || payout.paymentStatus === "processing",
+            payout.status === "pending" ||
+            payout.paymentStatus === "pending" ||
+            payout.paymentStatus === "processing"
         ).length || 0) +
         (referralProgram.completedReferrals?.filter(
           (referral) =>
             referral.paymentStatus === "processing" ||
-            (referral.status === "completed" && referral.paymentStatus === "pending"),
-        ).length || 0)
+            (referral.status === "completed" &&
+              referral.paymentStatus === "pending")
+        ).length || 0);
 
       return {
         success: false,
-        message: `You have ${pendingCount} pending payment${pendingCount > 1 ? "s" : ""} awaiting approval. Please wait for approval before requesting another payout.`,
+        message: `You have ${pendingCount} pending payment${
+          pendingCount > 1 ? "s" : ""
+        } awaiting approval. Please wait for approval before requesting another payout.`,
         hasPendingPayments: true,
         pendingCount,
-      }
+      };
     }
 
     // Check bank details
     if (!referralProgram.bankDetails?.accountNumber) {
-      return { success: false, message: "Bank details not set up" }
+      return { success: false, message: "Bank details not set up" };
     }
 
     // Verify bank details are complete
-    if (!referralProgram.bankDetails.accountName || !referralProgram.bankDetails.bankCode) {
-      return { success: false, message: "Bank details incomplete" }
+    if (
+      !referralProgram.bankDetails.accountName ||
+      !referralProgram.bankDetails.bankCode
+    ) {
+      return { success: false, message: "Bank details incomplete" };
     }
 
     // Determine minimum payout amount
-    const minPayout = referralProgram.minPayoutAmount?.minPayoutAmount || settings.minPayoutAmount
+    const minPayout =
+      referralProgram.minPayoutAmount?.minPayoutAmount ||
+      settings.minPayoutAmount;
 
     // Calculate eligible payout amount from completedReferrals
     const eligibleReferrals =
       referralProgram.completedReferrals?.filter(
         (referral) =>
-          referral.status === "pending" && referral.paymentStatus === "pending" && referral.paymentRequest === false,
-      ) || []
+          referral.status === "pending" &&
+          referral.paymentStatus === "pending" &&
+          referral.paymentRequest === false
+      ) || [];
 
-    const payoutAmount = eligibleReferrals.reduce((sum, referral) => sum + (referral.amount || 0), 0)
+    const payoutAmount = eligibleReferrals.reduce(
+      (sum, referral) => sum + (referral.amount || 0),
+      0
+    );
 
     // Validate minimum payout
     if (payoutAmount < minPayout) {
       return {
         success: false,
-        message: `Minimum payout amount is ${formatNaira(minPayout)}. You have ${formatNaira(payoutAmount)} eligible for payout.`,
-      }
+        message: `Minimum payout amount is ${formatNaira(
+          minPayout
+        )}. You have ${formatNaira(payoutAmount)} eligible for payout.`,
+      };
     }
 
     // Create payout record with bank details
@@ -624,17 +728,18 @@ export const requestPayout = async (userId) => {
         bankCode: referralProgram.bankDetails.bankCode,
         verified: referralProgram.bankDetails.verified || false,
       },
-    }
+    };
 
     // Update operation - mark these referrals as processing
     const updateOperations = {
       $push: { "referralProgram.payoutHistory": payoutRecord },
       $set: {
         "referralProgram.completedReferrals.$[elem].status": "completed",
-        "referralProgram.completedReferrals.$[elem].paymentStatus": "processing",
+        "referralProgram.completedReferrals.$[elem].paymentStatus":
+          "processing",
         "referralProgram.completedReferrals.$[elem].paymentRequest": true,
       },
-    }
+    };
 
     const options = {
       arrayFilters: [
@@ -645,13 +750,17 @@ export const requestPayout = async (userId) => {
         },
       ],
       new: true,
-    }
+    };
 
     // Execute the update
-    const updatedUser = await User.findByIdAndUpdate(userId, updateOperations, options).lean()
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateOperations,
+      options
+    ).lean();
 
     if (!updatedUser) {
-      throw new Error("Failed to update user record")
+      throw new Error("Failed to update user record");
     }
 
     return {
@@ -665,15 +774,15 @@ export const requestPayout = async (userId) => {
         updatedReferralsCount: eligibleReferrals.length,
       },
       message: "Payout request submitted successfully",
-    }
+    };
   } catch (error) {
-    console.error("Request payout error:", error)
+    console.error("Request payout error:", error);
     return {
       success: false,
       message: error.message || "Failed to request payout",
-    }
+    };
   }
-}
+};
 
 export const repairDatabaseReferences = async () => {
   try {
@@ -683,25 +792,29 @@ export const repairDatabaseReferences = async () => {
     const result = await User.updateMany(
       {
         $or: [
-          { 'referralProgram.minPayoutAmount': { $exists: false } },
-          { 'referralProgram.minPayoutAmount': { $type: ['number', 'string'] } },
-          { 'referralProgram.minPayoutAmount': { $not: { $type: 'objectId' } } }
-        ]
+          { "referralProgram.minPayoutAmount": { $exists: false } },
+          {
+            "referralProgram.minPayoutAmount": { $type: ["number", "string"] },
+          },
+          {
+            "referralProgram.minPayoutAmount": { $not: { $type: "objectId" } },
+          },
+        ],
       },
-      { $set: { 'referralProgram.minPayoutAmount': settings._id } }
+      { $set: { "referralProgram.minPayoutAmount": settings._id } }
     );
 
     return {
       success: true,
       message: `Fixed ${result.modifiedCount} broken references`,
-      count: result.modifiedCount
+      count: result.modifiedCount,
     };
   } catch (error) {
-    console.error('Repair error:', error);
-    return { 
-      success: false, 
-      message: 'Failed to repair references',
-      error: error.message 
+    console.error("Repair error:", error);
+    return {
+      success: false,
+      message: "Failed to repair references",
+      error: error.message,
     };
   }
 };
@@ -723,7 +836,7 @@ export const getPayoutHistory = async ({
 
     page = Math.max(1, parseInt(page));
     limit = Math.max(1, Math.min(100, parseInt(limit) || 10));
-    
+
     const validStatuses = ["pending", "processing", "completed", "failed", ""];
     if (!validStatuses.includes(status)) {
       return { success: false, message: "Invalid status filter" };
@@ -732,7 +845,7 @@ export const getPayoutHistory = async ({
     const validSortFields = ["requestedAt", "amount", "processedAt"];
     const sortDirection = sort.startsWith("-") ? -1 : 1;
     const sortField = sort.replace(/^-/, "");
-    
+
     if (!validSortFields.includes(sortField)) {
       return { success: false, message: "Invalid sort parameter" };
     }
@@ -740,11 +853,12 @@ export const getPayoutHistory = async ({
     // Use aggregation pipeline for better performance
     const pipeline = [
       { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-      { $project: {
+      {
+        $project: {
           payoutHistory: {
-            $ifNull: ["$referralProgram.payoutHistory", []]
-          }
-        }
+            $ifNull: ["$referralProgram.payoutHistory", []],
+          },
+        },
       },
       { $unwind: "$payoutHistory" },
     ];
@@ -753,47 +867,49 @@ export const getPayoutHistory = async ({
     if (status) {
       pipeline.push({
         $match: {
-          "payoutHistory.status": status
-        }
+          "payoutHistory.status": status,
+        },
       });
     }
 
     // Add sorting
     pipeline.push({
       $sort: {
-        [`payoutHistory.${sortField}`]: sortDirection
-      }
+        [`payoutHistory.${sortField}`]: sortDirection,
+      },
     });
 
     // Add pagination
     pipeline.push(
       { $skip: (page - 1) * limit },
       { $limit: limit },
-      { $group: {
+      {
+        $group: {
           _id: null,
           payouts: { $push: "$payoutHistory" },
-          total: { $sum: 1 }
-        }
+          total: { $sum: 1 },
+        },
       }
     );
 
     // Get total count separately for accurate pagination
     const countPipeline = [
       { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-      { $project: {
+      {
+        $project: {
           payoutHistory: {
-            $ifNull: ["$referralProgram.payoutHistory", []]
-          }
-        }
+            $ifNull: ["$referralProgram.payoutHistory", []],
+          },
+        },
       },
-      { $unwind: "$payoutHistory" }
+      { $unwind: "$payoutHistory" },
     ];
 
     if (status) {
       countPipeline.push({
         $match: {
-          "payoutHistory.status": status
-        }
+          "payoutHistory.status": status,
+        },
       });
     }
 
@@ -801,7 +917,7 @@ export const getPayoutHistory = async ({
 
     const [result, countResult] = await Promise.all([
       User.aggregate(pipeline),
-      User.aggregate(countPipeline)
+      User.aggregate(countPipeline),
     ]);
 
     const total = countResult[0]?.total || 0;
@@ -812,14 +928,17 @@ export const getPayoutHistory = async ({
       _id: payout._id?.toString(),
       amount: payout.amount || 0,
       formattedAmount: formatNaira(payout.amount || 0),
-      requestedAt: payout.requestedAt?.toISOString() || new Date().toISOString(),
+      requestedAt:
+        payout.requestedAt?.toISOString() || new Date().toISOString(),
       formattedRequestDate: formatDate(payout.requestedAt),
       processedAt: payout.processedAt?.toISOString() || null,
-      formattedProcessedDate: payout.processedAt ? formatDate(payout.processedAt) : null,
+      formattedProcessedDate: payout.processedAt
+        ? formatDate(payout.processedAt)
+        : null,
       status: payout.status || "pending",
       paystackReference: payout.paystackReference || null,
       paymentStatus: payout.paymentStatus,
-      bankDetails: payout.bankDetails
+      bankDetails: payout.bankDetails,
     }));
 
     return {
@@ -832,10 +951,10 @@ export const getPayoutHistory = async ({
     };
   } catch (error) {
     console.error("Get payout history error:", error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: "Failed to retrieve payout history",
-      error: error.message 
+      error: error.message,
     };
   }
 };
@@ -844,36 +963,36 @@ export const getPayoutHistory = async ({
 function formatDate(date) {
   if (!date) return null;
   return new Date(date).toLocaleDateString("en-US", {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 export const getReferralSettings = async () => {
   try {
-    await dbConnect()
-    
-    let settings = await ReferralPayoutSettings.findOne()
+    await dbConnect();
+
+    let settings = await ReferralPayoutSettings.findOne();
     if (!settings) {
-      settings = await ReferralPayoutSettings.create({})
+      settings = await ReferralPayoutSettings.create({});
     }
-    
+
     return {
       success: true,
       data: {
         minPayoutAmount: settings.minPayoutAmount,
-        referralPercentage: settings.referralPercentage
-      }
-    }
+        referralPercentage: settings.referralPercentage,
+      },
+    };
   } catch (error) {
-    console.error('Error fetching referral settings:', error)
+    console.error("Error fetching referral settings:", error);
     return {
       success: false,
-      message: 'Failed to load referral settings',
-      error: error.message
-    }
+      message: "Failed to load referral settings",
+      error: error.message,
+    };
   }
-}
+};
