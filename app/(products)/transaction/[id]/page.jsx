@@ -28,11 +28,13 @@ import { verifyPaystackPayment, getOrderById } from "@/actions/order";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function formatPrice(price) {
+  // Handle NaN, undefined, and null values
+  const numericPrice = Number(price) || 0;
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 0,
-  }).format(price);
+  }).format(numericPrice);
 }
 
 // Loading Skeleton Component
@@ -86,11 +88,13 @@ const TransactionConfirmationPage = () => {
         // First, try to get the order details
         const orderResult = await getOrderById(transactionId);
 
+        console.log(orderResult)
+
         if (orderResult.success) {
           setOrder(orderResult.data);
 
           // If order is already paid, show success
-          if (orderResult.data.isPaid) {
+          if (orderResult.data.paymentStatus === 'paid' || orderResult.data.isPaid) {
             setVerificationStatus("success");
             setIsLoading(false);
             return;
@@ -265,7 +269,7 @@ const TransactionConfirmationPage = () => {
             <div className="space-y-2">
               <p className="flex justify-between text-sm">
                 <span className="text-gray-600">Order ID:</span>
-                <span className="font-medium">{order._id}</span>
+                <span className="font-medium">{order.orderId || order._id}</span>
               </p>
               <p className="flex justify-between text-sm">
                 <span className="text-gray-600">Order Date:</span>
@@ -276,16 +280,16 @@ const TransactionConfirmationPage = () => {
               <p className="flex justify-between text-sm">
                 <span className="text-gray-600">Items:</span>
                 <span className="font-medium">
-                  {order.orderItems.reduce(
-                    (total, item) => total + item.quantity,
+                  {order.orderItems?.reduce(
+                    (total, item) => total + (item.quantity || 1),
                     0
-                  )}
+                  ) || 0}
                 </span>
               </p>
               <p className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Amount:</span>
+                <span className="text-gray-600">Total Amount with Shipping:</span>
                 <span className="font-medium text-green-600">
-                  {formatPrice(order.totalPrice)}
+                  {formatPrice(order.totalAmount || order.totalPrice)}
                 </span>
               </p>
             </div>
@@ -329,7 +333,7 @@ const TransactionConfirmationPage = () => {
             Order Items
           </h4>
           <div className="space-y-4">
-            {order.orderItems.map((item) => (
+            {order.orderItems?.map((item) => (
               <div
                 key={item._id}
                 className="flex items-center border-b border-gray-100 pb-4 last:border-0"
@@ -337,7 +341,7 @@ const TransactionConfirmationPage = () => {
                 <div className="w-16 h-16 relative flex-shrink-0">
                   {item.product?.defaultImage ? (
                     <Image
-                      src={item.product?.defaultImage || "/fallback.jpg"}
+                      src={item.product.defaultImage || "/fallback.jpg"}
                       alt={item.name || "Product"}
                       fill
                       className="object-cover rounded-md"
@@ -351,10 +355,10 @@ const TransactionConfirmationPage = () => {
                 <div className="ml-4 flex-1">
                   <p className="font-medium text-gray-800">{item.name}</p>
                   <p className="text-sm text-gray-600">
-                    Quantity: {item.quantity}
+                    Quantity: {item.quantity || 1}
                   </p>
                   <p className="text-sm text-blue-600">
-                    Price: {formatPrice(item.discountedPrice * item.quantity)}
+                    Price: {formatPrice((item.discountedPrice || 0) * (item.quantity || 1))}
                   </p>
                 </div>
               </div>
@@ -495,14 +499,16 @@ const TransactionConfirmationPage = () => {
                     <p className="text-gray-600">Payment Status</p>
                     <p
                       className={`font-medium ${
-                        order.isPaid
+                        order.paymentStatus === 'paid' || order.isPaid
                           ? "text-green-600"
-                          : !order.false
+                          : order.paymentStatus === 'failed'
                           ? "text-red-600"
                           : "text-yellow-600"
                       }`}
                     >
-                      {order.isPaid ? "Success" : order.status}
+                      {order.paymentStatus === 'paid' || order.isPaid ? "Paid" : 
+                       order.paymentStatus === 'failed' ? "Failed" : 
+                       order.paymentStatus || "Pending"}
                     </p>
                   </div>
                   {order.paystackReference && (

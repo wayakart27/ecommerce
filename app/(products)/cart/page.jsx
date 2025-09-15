@@ -28,6 +28,14 @@ const CartPage = () => {
   const [productStocks, setProductStocks] = useState({});
   const [itemLoading, setItemLoading] = useState({});
 
+  // Helper function to extract image URL from either string or object
+  const getImageUrl = (image) => {
+    if (!image) return "/placeholder.png";
+    if (typeof image === 'string') return image;
+    if (typeof image === 'object' && image.url) return image.url;
+    return "/placeholder.png";
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setLocalLoading(false);
@@ -267,6 +275,7 @@ const CartPage = () => {
                     const isInsufficient = !stockCheckLoading && stock > 0 && item.quantity > stock;
                     const showError = isOutOfStock || isInsufficient;
                     const itemIsLoading = itemLoading[item.id] || false;
+                    const imageUrl = getImageUrl(item.defaultImage);
 
                     return (
                       <div
@@ -274,14 +283,18 @@ const CartPage = () => {
                         className={`p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center ${showError ? 'bg-red-50' : ''}`}
                       >
                         <div className="md:col-span-6 flex items-center space-x-4">
-                          <Link
-                            href={`/product/${item.id}`}
+                          <span
                             className="w-20 h-20 flex-shrink-0 relative"
                           >
-                            <img
-                              src={item.defaultImage || '/placeholder.png'}
+                            <Image
+                              src={imageUrl}
                               alt={item.name}
+                              width={80}
+                              height={80}
                               className="w-full h-full object-cover rounded-md"
+                              onError={(e) => {
+                                e.target.src = "/placeholder.png";
+                              }}
                             />
                             {!stockCheckLoading && isOutOfStock && (
                               <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-md">
@@ -297,14 +310,13 @@ const CartPage = () => {
                                 </span>
                               </div>
                             )}
-                          </Link>
+                          </span>
                           <div>
-                            <Link
-                              href={`/product/${item.id}`}
+                            <span
                               className={`font-medium ${showError ? 'text-red-600' : 'text-gray-700 hover:text-blue-600'}`}
                             >
                               {item.name}
-                            </Link>
+                            </span>
                             {!stockCheckLoading && isInsufficient && (
                               <p className="text-xs text-red-500 mt-1">
                                 You've selected {item.quantity}, but only {stock} available

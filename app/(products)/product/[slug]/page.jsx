@@ -1,16 +1,16 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Zap, Shield, Truck, RotateCcw, Heart, Share2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Zap, Shield, Truck, RotateCcw, Heart, Share2, ChevronDown, ChevronUp } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import AddToCartButton from "@/components/AddToCartButton"
 import { getProductBySlugAndId, getRelatedProducts } from "@/actions/products"
 import WhatsAppButton from "@/components/WhatsAppButton"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function ProductPage() {
   const params = useParams()
@@ -23,12 +23,26 @@ export default function ProductPage() {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [zoomImage, setZoomImage] = useState(false)
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 })
+  const [showFullDescription, setShowFullDescription] = useState(false)
+  const [showAllFeatures, setShowAllFeatures] = useState(false)
+  const descriptionRef = useRef(null)
+  const featuresRef = useRef(null)
+  const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false)
+  const [isFeaturesOverflowing, setIsFeaturesOverflowing] = useState(false)
 
   const getCategoryName = (category) => {
     if (typeof category === "string") return category
     if (category && typeof category === "object") return category.name
     return "Uncategorized"
   }
+
+  // Helper function to extract image URL from either string or object
+  const getImageUrl = (image) => {
+    if (!image) return "/placeholder.svg";
+    if (typeof image === 'string') return image;
+    if (typeof image === 'object' && image.url) return image.url;
+    return "/placeholder.svg";
+  };
 
   const slugWithId = params?.slug || ""
   const prdIndex = slugWithId.indexOf("-PRD-")
@@ -81,6 +95,26 @@ export default function ProductPage() {
     }
   }
 
+  // Check if text is overflowing
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (descriptionRef.current) {
+        setIsDescriptionOverflowing(
+          descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight
+        )
+      }
+      if (featuresRef.current) {
+        setIsFeaturesOverflowing(
+          featuresRef.current.scrollHeight > featuresRef.current.clientHeight
+        )
+      }
+    }
+
+    checkOverflow()
+    window.addEventListener('resize', checkOverflow)
+    return () => window.removeEventListener('resize', checkOverflow)
+  }, [product])
+
   useEffect(() => {
     const fetchProductAndRelated = async () => {
       try {
@@ -121,27 +155,9 @@ export default function ProductPage() {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
+      minimumFractionDigits: 0,
     }).format(price)
   }
-
-  // Generic features that work for both tech products and accessories
-  const productFeatures = [
-    {
-      icon: <Zap className="h-5 w-5 text-blue-600" />,
-      title: "Premium Quality",
-      description: "Genuine products with warranty"
-    },
-    {
-      icon: <Shield className="h-5 w-5 text-green-600" />,
-      title: "Secure Payment",
-      description: "Safe and encrypted transactions"
-    },
-    {
-      icon: <Truck className="h-5 w-5 text-purple-600" />,
-      title: "Fast Delivery",
-      description: "Quick shipping"
-    },
-  ];
 
   if (loading) {
     return (
@@ -233,7 +249,7 @@ export default function ProductPage() {
               {product?.images?.length > 0 ? (
                 <>
                   <Image
-                    src={product.images[currentImageIndex]}
+                    src={getImageUrl(product.images[currentImageIndex])}
                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
                     fill
                     className="object-cover transition-transform duration-300"
@@ -243,6 +259,9 @@ export default function ProductPage() {
                     }}
                     priority
                     sizes="(max-width: 768px) 100vw, 50vw"
+                    onError={(e) => {
+                      e.target.src = "/placeholder.svg";
+                    }}
                   />
                   {product.images.length > 1 && (
                     <>
@@ -311,11 +330,14 @@ export default function ProductPage() {
                     }`}
                   >
                     <Image
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`Thumbnail ${index + 1}`}
                       width={80}
                       height={80}
                       className="h-full w-full object-cover rounded-lg"
+                      onError={(e) => {
+                        e.target.src = "/placeholder.svg";
+                      }}
                     />
                   </button>
                 ))}
@@ -364,45 +386,78 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Product Features - Generic for all products */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {productFeatures.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-gray-900">{feature.title}</p>
-                    <p className="text-xs text-gray-600">{feature.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Description */}
+            {/* Description in Single Column */}
             <div className="border-t border-gray-200 pt-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Description</h2>
-              <p className="leading-relaxed text-gray-600">{product.description}</p>
+              <div 
+                ref={descriptionRef}
+                className={`leading-relaxed text-gray-600 transition-all duration-300 ${
+                  !showFullDescription ? 'line-clamp-6' : ''
+                }`}
+              >
+                {product.description}
+              </div>
+              {isDescriptionOverflowing && (
+                <button
+                  onClick={() => setShowFullDescription(!showFullDescription)}
+                  className="mt-2 flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm"
+                >
+                  {showFullDescription ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Read More
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* Features */}
+            {/* Features in Three Columns */}
             {product.features?.length > 0 && (
               <div className="border-t border-gray-200 pt-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Key Features</h2>
-                <ul className="grid grid-cols-1 gap-3">
+                <div 
+                  ref={featuresRef}
+                  className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 transition-all duration-300 ${
+                    !showAllFeatures && product.features.length > 6 ? 'max-h-96 overflow-hidden' : ''
+                  }`}
+                >
                   {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-gray-600">
-                      <CheckCircle className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
-                      <span>{feature}</span>
-                    </li>
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-start text-gray-600 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <CheckCircle className="mt-0.5 mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
+                      <span className="text-sm leading-relaxed">{feature}</span>
+                    </motion.div>
                   ))}
-                </ul>
+                </div>
+                {product.features.length > 6 && (
+                  <button
+                    onClick={() => setShowAllFeatures(!showAllFeatures)}
+                    className="mt-4 flex items-center justify-center w-full text-blue-600 hover:text-blue-700 font-medium text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    {showAllFeatures ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Show Less Features
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Show All Features ({product.features.length})
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 
@@ -455,10 +510,13 @@ export default function ProductPage() {
                     >
                       <div className="relative aspect-square bg-gray-100">
                         <Image
-                          src={product.defaultImage || "/placeholder.svg"}
+                          src={getImageUrl(product.defaultImage)}
                           alt={product.name}
                           fill
                           className="object-cover transition-transform group-hover:scale-105"
+                          onError={(e) => {
+                            e.target.src = "/placeholder.svg";
+                          }}
                         />
                       </div>
                       <div className="p-4">

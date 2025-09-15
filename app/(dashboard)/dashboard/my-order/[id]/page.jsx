@@ -416,9 +416,9 @@ export default function OrderDetailsPage() {
           {order.orderItems.map((item) => (
             <div key={item._id} className="p-3 sm:p-4 border-b flex items-center">
               <div className="mr-3 sm:mr-4">
-                {item.product?.defaultImage?.length > 0 ? (
+                {item.product?.defaultImage?.url?.length > 0 ? (
                   <img
-                    src={item.product.defaultImage}
+                    src={item.product.defaultImage?.url}
                     alt={item.name}
                     className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded"
                     width={64}

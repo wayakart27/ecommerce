@@ -38,7 +38,8 @@ export async function searchProducts(query = "", limit = 10) {
         description: product.description,
         price: product.price,
         discountedPrice: product.discountedPrice || null,
-        defaultImage: product.defaultImage || "/placeholder.png",
+        // Extract the URL from the defaultImage object
+        defaultImage: product.defaultImage?.url || "/placeholder.png",
         category: product.category.name,
         slug: product.slug,
         productId: product.productId,

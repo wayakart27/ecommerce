@@ -33,6 +33,14 @@ const ProductCardSkeleton = () => (
   </div>
 )
 
+// Helper function to extract image URL from either string or object
+const getImageUrl = (image) => {
+  if (!image) return "/placeholder.svg";
+  if (typeof image === 'string') return image;
+  if (typeof image === 'object' && image.url) return image.url;
+  return "/placeholder.svg";
+};
+
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
@@ -96,14 +104,20 @@ const FeaturedProducts = () => {
 
       const response = await getAllProductsGroupedByCategory(pageNum, 8, category)
 
+      // Process products to ensure proper image URLs
+      const processedProducts = response.products.map(product => ({
+        ...product,
+        defaultImage: getImageUrl(product.defaultImage)
+      }));
+
       if (reset || pageNum === 1) {
         // Randomize products for ALL categories, not just "all"
-        const shuffledProducts = shuffleArray(response.products);
+        const shuffledProducts = shuffleArray(processedProducts);
         setProducts(shuffledProducts);
         setRandomizedProducts(shuffledProducts);
         setTotalCounts(response.totalCounts)
       } else {
-        setProducts((prev) => [...prev, ...response.products])
+        setProducts((prev) => [...prev, ...processedProducts])
       }
 
       setHasMore(response.pagination?.hasNextPage || false)
@@ -379,10 +393,13 @@ const FeaturedProducts = () => {
 
                         <div className="relative aspect-square overflow-hidden rounded-xl mb-5 w-full bg-gradient-to-br from-gray-100 to-gray-200">
                           <img
-                            src={product.defaultImage || "/placeholder.svg"}
+                            src={getImageUrl(product.defaultImage)}
                             alt={product.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
+                            onError={(e) => {
+                              e.target.src = "/placeholder.svg";
+                            }}
                           />
                         </div>
 

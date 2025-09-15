@@ -603,9 +603,9 @@ export default function OrderDetailsPage() {
                   {order.orderItems.map((item) => (
                     <TableRow key={item._id}>
                       <TableCell className="flex items-center gap-4">
-                        {item.product?.defaultImage ? (
+                        {item.product?.defaultImage?.url ? (
                           <img
-                            src={item.product.defaultImage}
+                            src={item.product.defaultImage?.url}
                             alt={item.name}
                             className="h-12 w-12 rounded-md object-cover"
                           />

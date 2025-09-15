@@ -463,17 +463,21 @@ export const getOrderById = async (orderId) => {
       .populate("shippingAddress")
       .populate({
         path: "orderItems.product",
-        model: Products, // Explicitly specify the model
-        select: "name defaultImage price slug", // Select specific fields
-      });
+        model: Products,
+        select: "name defaultImage price slug",
+      })
+      .lean();
 
     if (!order) {
       return { success: false, error: "Order not found" };
     }
 
+    // Sanitize the data to remove circular references and extract image URLs
+    const sanitizedOrder = sanitizeOrderData(order);
+
     return {
       success: true,
-      data: sanitizeForClient(order),
+      data: sanitizedOrder,
       message: "Order retrieved successfully",
     };
   } catch (error) {
@@ -484,6 +488,63 @@ export const getOrderById = async (orderId) => {
     };
   }
 };
+
+// Helper function to sanitize order data
+function sanitizeOrderData(order) {
+  // Create a clean copy without Mongoose metadata
+  const cleanOrder = {
+    _id: order._id?.toString?.(),
+    orderId: order.orderId,
+    user: order.user ? {
+      _id: order.user._id?.toString?.(),
+      name: order.user.name,
+      email: order.user.email,
+      phone: order.user.phone
+    } : null,
+    orderItems: order.orderItems?.map(item => ({
+      _id: item._id?.toString?.(),
+      name: item.name, // Preserve the order item name
+      product: item.product ? {
+        _id: item.product._id?.toString?.(),
+        name: item.product.name,
+        price: item.product.discountedPrice,
+        slug: item.product.slug,
+        // Extract URL from defaultImage object
+        defaultImage: item.product.defaultImage && typeof item.product.defaultImage === 'object' 
+          ? item.product.defaultImage.url 
+          : item.product.defaultImage || null
+      } : null,
+      quantity: item.quantity,
+      price: item.itemsPrice, // Use the actual price from the order item (not product price)
+      // Include any other order item specific fields
+      discountedPrice: item.discountedPrice,
+      totalPrice: item.totalPrice || (item.price || 0) * (item.quantity || 1)
+    })) || [],
+    totalAmount: order.totalAmount,
+    totalPrice: order.totalPrice, // Include both totalAmount and totalPrice
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    isPaid: order.isPaid,
+    paystackReference: order.paystackReference,
+    shippingAddress: order.shippingAddress ? {
+      _id: order.shippingAddress._id?.toString?.(),
+      firstName: order.shippingAddress.firstName,
+      lastName: order.shippingAddress.lastName,
+      address: order.shippingAddress.address,
+      city: order.shippingAddress.city,
+      state: order.shippingAddress.state,
+      postalCode: order.shippingAddress.postalCode,
+      country: order.shippingAddress.country,
+      phone: order.shippingAddress.phone,
+      email: order.shippingAddress.email
+    } : null,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt
+  };
+
+  return cleanOrder;
+}
 
 export const getOrdersByUserId = async (userId) => {
   try {

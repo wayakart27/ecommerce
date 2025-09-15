@@ -73,17 +73,24 @@ const ProductSchema = new Schema(
       set: v => Math.floor(v)
     },
     images: {
-      type: [String], // Array of Cloudinary URLs
+      type: [
+        {
+          url: { type: String, required: true, trim: true },
+          alt: { type: String, trim: true, maxlength: 100 },
+          isPrimary: { type: Boolean, default: false }
+        }
+      ],
       default: [],
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return v.length <= 5;
         },
         message: 'Cannot have more than 5 images'
       }
     },
     defaultImage: {
-      type: String // Cloudinary URL for default image
+      url: { type: String, trim: true },
+      alt: { type: String, trim: true }
     },
     isActive: {
       type: Boolean,
@@ -114,24 +121,9 @@ const ProductSchema = new Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-      transform: function (doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret.__v;
-        delete ret._id;
-        return ret;
-      }
-    },
-    toObject: {
-      virtuals: true,
-      transform: function (doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret.__v;
-        delete ret._id;
-        return ret;
-      }
-    }
+    // Remove transform functions to prevent circular references
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
@@ -141,10 +133,14 @@ ProductSchema.virtual('discountPercentage').get(function () {
   return Math.round(((this.price - this.discountedPrice) / this.price) * 100);
 });
 
-// Slug generation middleware
+// Virtual for id (simple version)
+ProductSchema.virtual('id').get(function () {
+  return this._id ? this._id.toString() : null;
+});
+
+// Slug + pricing + image middleware
 ProductSchema.pre('save', async function (next) {
   try {
-
     // Ensure purchasePrice is not higher than price
     if (this.purchasePrice > this.price) {
       return next(new Error('Purchase price cannot be greater than selling price'));
@@ -155,11 +151,11 @@ ProductSchema.pre('save', async function (next) {
       return next(new Error('Discounted price cannot be greater than regular price'));
     }
 
-    // Set default image if none specified but images exist
-    if (this.images.length > 0 && !this.defaultImage) {
-      this.defaultImage = this.images[0];
+    // Set default image if not specified
+    if (this.images.length > 0 && (!this.defaultImage || !this.defaultImage.url)) {
+      const primaryImage = this.images.find(img => img.isPrimary);
+      this.defaultImage = primaryImage ? { url: primaryImage.url, alt: primaryImage.alt } : { url: this.images[0].url, alt: this.images[0].alt };
     }
-
 
     next();
   } catch (err) {
@@ -167,6 +163,7 @@ ProductSchema.pre('save', async function (next) {
   }
 });
 
+// Indexes
 ProductSchema.index({ name: 'text', description: 'text', features: 'text' });
 ProductSchema.index({ category: 1, isActive: 1, price: 1 });
 ProductSchema.index({ price: 1, discountedPrice: 1 });
@@ -198,6 +195,5 @@ ProductSchema.statics.findByPriceRange = function (min, max) {
     isActive: true
   });
 };
-
 
 module.exports = mongoose.models.Product || mongoose.model('Product', ProductSchema);

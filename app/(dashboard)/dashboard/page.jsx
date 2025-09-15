@@ -231,7 +231,7 @@ const AdminDashboard = ({ data, timeRange }) => (
                     <div className="flex items-center gap-3">
                       {product?.defaultImage ? (
                         <img
-                          src={product?.defaultImage}
+                          src={product?.defaultImage?.url}
                           alt={product?.name}
                           className="w-10 h-10 rounded-md object-cover"
                         />
@@ -443,9 +443,9 @@ const CustomerDashboard = ({ data }) => (
                 <TableRow key={product?._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {product?.defaultImage ? (
+                      {product?.defaultImage?.url ? (
                         <img
-                          src={product?.defaultImage}
+                          src={product?.defaultImage?.url}
                           alt={product?.name}
                           className="w-10 h-10 rounded-md object-cover"
                         />

@@ -1,36 +1,50 @@
-"use client"
-import { useEffect, useState, useRef } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
-import { Loader2, UploadCloud, X, Plus, Minus, Star } from "lucide-react"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreateProductSchema } from "@/schemas/product"
-import { createProduct } from "@/actions/products"
-import { getAllCategories } from "@/actions/categories"
-import { Checkbox } from "@/components/ui/checkbox"
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { Loader2, UploadCloud, X, Plus, Minus, Star } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreateProductSchema } from "@/schemas/product";
+import { createProduct } from "@/actions/products";
+import { getAllCategories } from "@/actions/categories";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AddProductPage() {
-  const router = useRouter()
-  const fileInputRef = useRef(null)
-  const abortControllers = useRef({})
-  const [categories, setCategories] = useState([])
-  const [imagePreviews, setImagePreviews] = useState([])
-  const [uploadProgress, setUploadProgress] = useState({})
-  const [defaultImageIndex, setDefaultImageIndex] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
-  const [features, setFeatures] = useState([])
-  const [currentFeature, setCurrentFeature] = useState("")
-  const [isGeneratingSlug, setIsGeneratingSlug] = useState(false)
-  const [activeUploads, setActiveUploads] = useState([])
+  const router = useRouter();
+  const fileInputRef = useRef(null);
+  const abortControllers = useRef({});
+  const [categories, setCategories] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [defaultImageIndex, setDefaultImageIndex] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [features, setFeatures] = useState([]);
+  const [currentFeature, setCurrentFeature] = useState("");
+  const [isGeneratingSlug, setIsGeneratingSlug] = useState(false);
+  const [activeUploads, setActiveUploads] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
 
   const form = useForm({
     resolver: zodResolver(CreateProductSchema),
@@ -44,85 +58,92 @@ export default function AddProductPage() {
       category: "",
       stock: 0,
       isActive: true,
-      images: [], // Initialize as empty array
-      defaultImage: null, // Initialize as null
+      images: [],
+      defaultImage: null,
       features: [],
     },
-  })
+  });
 
   // Cleanup object URLs when component unmounts
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview))
-      Object.values(abortControllers.current).forEach((controller) => controller.abort())
-    }
-  }, [imagePreviews])
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+      Object.values(abortControllers.current).forEach((controller) =>
+        controller.abort()
+      );
+    };
+  }, [imagePreviews]);
 
   const fetchCategories = async () => {
-    setIsLoadingCategories(true)
+    setIsLoadingCategories(true);
     try {
-      const result = await getAllCategories()
+      const result = await getAllCategories();
       if (result?.success) {
-        setCategories(result.data || [])
+        setCategories(result.data || []);
       } else {
-        toast.error(result?.message || "Failed to load categories")
+        toast.error(result?.message || "Failed to load categories");
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
-      toast.error("Failed to load categories. Please try again later.")
+      console.error("Failed to fetch categories:", error);
+      toast.error("Failed to load categories. Please try again later.");
     } finally {
-      setIsLoadingCategories(false)
+      setIsLoadingCategories(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, []);
 
   const generateSlug = async (name) => {
-    if (!name) return ""
-    setIsGeneratingSlug(true)
+    if (!name) return "";
+    setIsGeneratingSlug(true);
     try {
       const slug = name
         .toLowerCase()
         .replace(/[^\w\s-]/g, "")
         .replace(/[\s]+/g, "-")
         .replace(/--+/g, "-")
-        .trim()
-      form.setValue("slug", slug)
-      return slug
+        .trim();
+      form.setValue("slug", slug, { shouldValidate: true });
+      return slug;
     } catch (error) {
-      console.error("Error generating slug:", error)
-      return ""
+      console.error("Error generating slug:", error);
+      return "";
     } finally {
-      setIsGeneratingSlug(false)
+      setIsGeneratingSlug(false);
     }
-  }
+  };
 
   const handleNameChange = (e) => {
-    const name = e.target.value
-    form.setValue("name", name)
-    generateSlug(name)
-  }
+    const name = e.target.value;
+    form.setValue("name", name, { shouldValidate: true });
+    generateSlug(name);
+  };
 
   const uploadToCloudinary = async (file, index) => {
-    const MAX_SIZE = 2 * 1024 * 1024
-    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
+    const MAX_SIZE = 2 * 1024 * 1024;
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      throw new Error("Only JPG, PNG, and WebP images are allowed")
+      throw new Error("Only JPG, PNG, and WebP images are allowed");
     }
     if (file.size > MAX_SIZE) {
-      throw new Error(`Image exceeds 2MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
+      throw new Error(
+        `Image exceeds 2MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`
+      );
     }
 
-    const controller = new AbortController()
-    abortControllers.current[index] = controller
+    const controller = new AbortController();
+    abortControllers.current[index] = controller;
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append(
+        "upload_preset",
+        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+      );
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
@@ -130,210 +151,256 @@ export default function AddProductPage() {
           method: "POST",
           body: formData,
           signal: controller.signal,
-        },
-      )
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || "Upload failed")
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Upload failed");
       }
 
-      return await response.json()
+      return await response.json();
     } catch (error) {
       if (error.name !== "AbortError") {
-        throw error
+        throw error;
       }
-      return null // Return null if upload was aborted
+      return null;
     } finally {
-      delete abortControllers.current[index]
+      delete abortControllers.current[index];
     }
-  }
+  };
 
   const handleImageChange = async (files) => {
-    const filesArray = Array.from(files).slice(0, 5 - imagePreviews.length)
+    const filesArray = Array.from(files).slice(0, 5 - imagePreviews.length);
 
     try {
-      // Create previews and filter invalid files
-      const newPreviews = []
-      const validFilesToUpload = []
+      const newPreviews = [];
+      const validFilesToUpload = [];
       filesArray.forEach((file) => {
         try {
           if (file.size > 2 * 1024 * 1024) {
-            throw new Error(`${file.name}: Exceeds 2MB limit`)
+            throw new Error(`${file.name}: Exceeds 2MB limit`);
           }
           if (!file.type.startsWith("image/")) {
-            throw new Error(`${file.name}: Not an image file`)
+            throw new Error(`${file.name}: Not an image file`);
           }
-          const preview = URL.createObjectURL(file)
-          newPreviews.push(preview)
-          validFilesToUpload.push(file)
+          const preview = URL.createObjectURL(file);
+          newPreviews.push(preview);
+          validFilesToUpload.push(file);
         } catch (error) {
-          toast.error(error.message)
+          toast.error(error.message);
         }
-      })
+      });
 
-      // Update previews immediately
-      const updatedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5)
-      setImagePreviews(updatedPreviews)
+      const updatedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5);
+      setImagePreviews(updatedPreviews);
 
-      // Upload files with progress tracking
       const uploadPromises = validFilesToUpload.map(async (file, index) => {
-        const globalIndex = imagePreviews.length + index // Calculate global index for new files
-        setActiveUploads((prev) => [...prev, globalIndex])
+        const globalIndex = imagePreviews.length + index;
+        setActiveUploads((prev) => [...prev, globalIndex]);
         try {
-          // Simulate progress (optional, for UI feedback)
           for (let progress = 0; progress <= 90; progress += 10) {
-            await new Promise((resolve) => setTimeout(resolve, 200))
-            if (abortControllers.current[globalIndex]?.signal.aborted) break
-            setUploadProgress((prev) => ({ ...prev, [globalIndex]: progress }))
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            if (abortControllers.current[globalIndex]?.signal.aborted) break;
+            setUploadProgress((prev) => ({ ...prev, [globalIndex]: progress }));
           }
           if (abortControllers.current[globalIndex]?.signal.aborted) {
-            return null
+            return null;
           }
 
           const result = await uploadToCloudinary(file, globalIndex)
-          setUploadProgress((prev) => ({ ...prev, [globalIndex]: 100 }))
-          return result.secure_url
+setUploadProgress((prev) => ({ ...prev, [globalIndex]: 100 }))
+return result?.secure_url || ""
         } catch (error) {
           if (error.name !== "AbortError") {
-            toast.error(`Failed to upload ${file.name}: ${error.message}`)
+            toast.error(`Failed to upload ${file.name}: ${error.message}`);
           }
-          return null
+          return null;
         } finally {
-          setActiveUploads((prev) => prev.filter((i) => i !== globalIndex))
+          setActiveUploads((prev) => prev.filter((i) => i !== globalIndex));
         }
-      })
+      });
 
-      const uploadedUrls = (await Promise.all(uploadPromises)).filter(Boolean)
+      const uploadedUrls = (await Promise.all(uploadPromises)).filter(Boolean);
 
-      // Get current images from form state to ensure we have the latest
-      const currentUrls = form.getValues("images")
-      const allUrls = [...currentUrls, ...uploadedUrls].slice(0, 5)
+      // Convert Cloudinary URLs into objects
+      const newImageObjects = uploadedUrls.map((url, i) => ({
+        url,
+        alt: `Product image ${uploadedImages.length + i + 1}`,
+        isPrimary: uploadedImages.length + i === defaultImageIndex, // keep default if already set
+      }));
 
-      // Update form with all URLs
-      form.setValue("images", allUrls)
+      const updatedUploadedImages = [
+        ...uploadedImages,
+        ...newImageObjects,
+      ].slice(0, 5);
+      setUploadedImages(updatedUploadedImages);
 
-      // Set default image if none selected and new images were uploaded
-      if (defaultImageIndex === null && uploadedUrls.length > 0) {
-        const newDefaultIndex = currentUrls.length // Index of the first newly uploaded image
-        setDefaultImageIndex(newDefaultIndex)
-        form.setValue("defaultImage", allUrls[newDefaultIndex])
-      }
+      // Update form
+      form.setValue("images", updatedUploadedImages, { shouldValidate: true });
+
+     if (defaultImageIndex === null && updatedUploadedImages.length > 0) {
+  setDefaultImageIndex(0);
+  form.setValue("defaultImage", updatedUploadedImages[0].url, {
+    shouldValidate: true,
+  });
+}
     } catch (error) {
-      console.error("Image processing error:", error)
+      console.error("Image processing error:", error);
     }
+  };
+
+ const cancelUpload = (index) => {
+  if (abortControllers.current[index]) {
+    abortControllers.current[index].abort();
+    delete abortControllers.current[index];
   }
 
-  const cancelUpload = (index) => {
-    if (abortControllers.current[index]) {
-      abortControllers.current[index].abort()
-      delete abortControllers.current[index]
-    }
+  setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  setUploadProgress((prev) => {
+    const newProgress = { ...prev };
+    delete newProgress[index];
+    return newProgress;
+  });
 
-    // Remove preview
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
-    setUploadProgress((prev) => {
-      const newProgress = { ...prev }
-      delete newProgress[index]
-      return newProgress
-    })
-
-    // Update form images array
-    const currentUrls = form.getValues("images")
-    if (index < currentUrls.length) {
-      // Only remove from form if it was already uploaded
-      const newUrls = currentUrls.filter((_, i) => i !== index)
-      form.setValue("images", newUrls)
-
-      // Adjust default image index if the removed image was default or before it
-      if (defaultImageIndex === index) {
-        const newDefaultIndex = newUrls.length > 0 ? 0 : null // Set first image as default or null
-        setDefaultImageIndex(newDefaultIndex)
-        form.setValue("defaultImage", newDefaultIndex !== null ? newUrls[newDefaultIndex] : null)
-      } else if (defaultImageIndex !== null && defaultImageIndex > index) {
-        setDefaultImageIndex(defaultImageIndex - 1)
-      }
-    }
-    toast.info("Upload cancelled or image removed.")
+  const newUploadedImages = uploadedImages.filter((_, i) => i !== index);
+  setUploadedImages(newUploadedImages);
+  
+  // Update default image handling
+  if (defaultImageIndex === index) {
+    const newDefaultIndex = newUploadedImages.length > 0 ? 0 : null;
+    setDefaultImageIndex(newDefaultIndex);
+    form.setValue("defaultImage", newDefaultIndex !== null ? newUploadedImages[newDefaultIndex].url : null, { 
+      shouldValidate: true 
+    });
+  } else if (defaultImageIndex !== null && defaultImageIndex > index) {
+    setDefaultImageIndex(defaultImageIndex - 1);
+    form.setValue("defaultImage", uploadedImages[defaultImageIndex - 1].url, { 
+      shouldValidate: true 
+    });
   }
+
+  form.setValue("images", newUploadedImages, { shouldValidate: true });
+  toast.info("Upload cancelled or image removed.");
+};
 
   const handleFileInputChange = (e) => {
-    const files = e.target.files
-    if (files?.length) handleImageChange(files)
-  }
+    const files = e.target.files;
+    if (files?.length) handleImageChange(files);
+  };
 
   const handleDragOver = (e) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
-  const handleDragLeave = () => setIsDragging(false)
+  const handleDragLeave = () => setIsDragging(false);
 
   const handleDrop = (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-    if (e.dataTransfer.files?.length) handleImageChange(e.dataTransfer.files)
-  }
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files?.length) handleImageChange(e.dataTransfer.files);
+  };
 
-  const setAsDefault = (index) => {
-    const images = form.getValues("images")
-    if (images[index]) {
-      setDefaultImageIndex(index)
-      form.setValue("defaultImage", images[index])
-      toast.success("Default image set!")
-    }
+// In setAsDefault function
+const setAsDefault = (index) => {
+  if (uploadedImages[index]) {
+    const updatedImages = uploadedImages.map((img, i) => ({
+      ...img,
+      isPrimary: i === index,
+    }))
+
+    setUploadedImages(updatedImages)
+    setDefaultImageIndex(index)
+    form.setValue("images", updatedImages, { shouldValidate: true })
+    // Send just the URL string instead of the object
+    form.setValue("defaultImage", updatedImages[index].url, { shouldValidate: true })
+    toast.success("Default image set!")
   }
+}
 
   const addFeature = () => {
-    if (!currentFeature.trim()) return
-    const newFeatures = [...features, currentFeature.trim()]
-    setFeatures(newFeatures)
-    form.setValue("features", newFeatures) // Ensure form state is updated
-    setCurrentFeature("")
-  }
+    if (!currentFeature.trim()) return;
+    const newFeatures = [...features, currentFeature.trim()];
+    setFeatures(newFeatures);
+    form.setValue("features", newFeatures, { shouldValidate: true });
+    setCurrentFeature("");
+  };
 
   const removeFeature = (index) => {
-    const newFeatures = features.filter((_, i) => i !== index)
-    setFeatures(newFeatures)
-    form.setValue("features", newFeatures) // Ensure form state is updated
-  }
+    const newFeatures = features.filter((_, i) => i !== index);
+    setFeatures(newFeatures);
+    form.setValue("features", newFeatures, { shouldValidate: true });
+  };
 
-  const onSubmit = async (data) => {
-    setIsSubmitting(true)
-    try {
-      // Get the latest form values including images and defaultImage
-      // These are managed manually via form.setValue, so getValues() is crucial here.
-      const formValues = form.getValues()
-      const productData = {
-        ...data,
-        images: formValues.images, // Ensure images array is passed
-        defaultImage: formValues.defaultImage, // Ensure defaultImage URL is passed
-        features: features, // Ensure features array is passed
-      }
+const onSubmit = async (data) => {
+  console.log('Submitting....')
+  setIsSubmitting(true);
+  try {
+    const productData = {
+      ...data,
+      price: Number(data.price),
+      purchasePrice: Number(data.purchasePrice),
+      discountedPrice: data.discountedPrice
+        ? Number(data.discountedPrice)
+        : null,
+      stock: Number(data.stock),
+      images: uploadedImages.map((img, index) => ({
+        url: img.url,
+        alt: img.alt || `Product image ${index + 1}`,
+        isPrimary: defaultImageIndex === index
+      })),
+      defaultImage: defaultImageIndex !== null 
+        ? {
+            url: uploadedImages[defaultImageIndex].url,
+            alt: uploadedImages[defaultImageIndex].alt || 'Default product image'
+          }
+        : null,
+      features: features,
+    };
 
-      const result = await createProduct(productData)
+    const result = await createProduct(productData);
 
-      if (result?.success) {
-        toast.success("Product created successfully")
-        router.push("/dashboard/products")
-      } else if (result?.error) {
-        // Handle Zod field errors from server action
+    console.log("Create product result:", result); // Add this for debugging
+
+    if (result?.success) {
+      toast.success("Product created successfully");
+      router.push("/dashboard/products");
+    } else {
+      // Handle different error formats
+      if (typeof result?.error === 'object') {
+        // Zod-style errors with _errors property
         Object.entries(result.error).forEach(([key, value]) => {
           if (value?._errors) {
-            form.setError(key, { type: "server", message: value._errors.join(", ") })
+            form.setError(key, {
+              type: "server",
+              message: value._errors.join(", "),
+            });
           }
-        })
-        toast.error(result.message || "Failed to create product")
+        });
+        toast.error(result.message || "Failed to create product");
+      } else if (typeof result?.error === 'string') {
+        // Simple string error
+        toast.error(result.error);
       } else {
-        toast.error("An unknown error occurred during product creation.")
+        // Unknown error format
+        toast.error(result?.message || "An unknown error occurred");
       }
-    } catch (error) {
-      console.error("Submission error:", error)
-      toast.error("An unexpected error occurred")
-    } finally {
-      setIsSubmitting(false)
     }
+  } catch (error) {
+    console.error("Submission error:", error);
+    toast.error("An unexpected error occurred");
+  } finally {
+    setIsSubmitting(false);
   }
+};
+  // Add debug logging to see form state
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      console.log("Form field changed:", name, value[name]);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   return (
     <div className="container mx-auto py-8">
@@ -352,7 +419,11 @@ export default function AddProductPage() {
                     <FormItem>
                       <FormLabel>Product Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter product name" {...field} onChange={handleNameChange} />
+                        <Input
+                          placeholder="Enter product name"
+                          {...field}
+                          onChange={handleNameChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -372,9 +443,15 @@ export default function AddProductPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => generateSlug(form.getValues("name"))}
-                            disabled={isGeneratingSlug || !form.getValues("name")}
+                            disabled={
+                              isGeneratingSlug || !form.getValues("name")
+                            }
                           >
-                            {isGeneratingSlug ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate"}
+                            {isGeneratingSlug ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Generate"
+                            )}
                           </Button>
                         </div>
                       </FormControl>
@@ -394,7 +471,11 @@ export default function AddProductPage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(
+                              Number.parseFloat(e.target.value) || 0
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -413,7 +494,11 @@ export default function AddProductPage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(
+                              Number.parseFloat(e.target.value) || 0
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -432,7 +517,13 @@ export default function AddProductPage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? null
+                                : Number.parseFloat(e.target.value)
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -450,7 +541,9 @@ export default function AddProductPage() {
                           type="number"
                           placeholder="0"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseInt(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(Number.parseInt(e.target.value) || 0)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -463,11 +556,17 @@ export default function AddProductPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingCategories}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoadingCategories}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             {isLoadingCategories ? (
-                              <span className="text-muted-foreground">Loading categories...</span>
+                              <span className="text-muted-foreground">
+                                Loading categories...
+                              </span>
                             ) : (
                               <SelectValue placeholder="Select a category" />
                             )}
@@ -475,12 +574,19 @@ export default function AddProductPage() {
                         </FormControl>
                         <SelectContent>
                           {isLoadingCategories ? (
-                            <div className="text-muted-foreground p-2 text-center text-sm">Loading categories...</div>
+                            <div className="text-muted-foreground p-2 text-center text-sm">
+                              Loading categories...
+                            </div>
                           ) : categories.length === 0 ? (
-                            <div className="text-muted-foreground p-2 text-center text-sm">No categories available</div>
+                            <div className="text-muted-foreground p-2 text-center text-sm">
+                              No categories available
+                            </div>
                           ) : (
                             categories.map((category) => (
-                              <SelectItem key={category._id} value={category._id}>
+                              <SelectItem
+                                key={category._id}
+                                value={category._id}
+                              >
                                 {category.name}
                               </SelectItem>
                             ))
@@ -491,134 +597,134 @@ export default function AddProductPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="images" // This field is controlled manually, but still part of the schema
-                  render={() => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Product Images (Max 5, 2MB each)</FormLabel>
-                      <FormControl>
-                        <div className="space-y-4">
-                          {imagePreviews.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                              {imagePreviews.map((preview, index) => {
-                                const isUploading = activeUploads.includes(index)
-                                const progress = uploadProgress[index] || 0
-                                return (
-                                  <div key={index} className="relative group h-32">
-                                    <img
-                                      src={preview || "/placeholder.svg"}
-                                      alt={`Product preview ${index + 1}`}
-                                      className="w-full h-full object-cover rounded-lg border bg-gray-50"
-                                    />
-                                    {isUploading && (
-                                      <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center rounded-lg">
-                                        <div className="w-4/5 bg-gray-200 rounded-full h-1.5">
-                                          <div
-                                            className="bg-blue-600 h-1.5 rounded-full"
-                                            style={{ width: `${progress}%` }}
-                                          ></div>
-                                        </div>
-                                        <span className="text-white text-xs mt-2">
-                                          {progress}% {progress < 100 ? "Uploading..." : "Processing..."}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => cancelUpload(index)}
-                                      className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-1 shadow-sm transition-all"
-                                    >
-                                      <X className="h-4 w-4 text-gray-700" />
-                                    </button>
-                                    {!isUploading && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setAsDefault(index)}
-                                        className={`absolute top-2 left-2 rounded-full p-1 transition-all ${
-                                          defaultImageIndex === index
-                                            ? "bg-yellow-400 text-yellow-800"
-                                            : "bg-white/90 hover:bg-white text-gray-700"
-                                        }`}
-                                      >
-                                        <Star className="h-4 w-4" />
-                                      </button>
-                                    )}
-                                    {!isUploading && defaultImageIndex === index && (
-                                      <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white text-xs py-1 px-2 rounded text-center">
-                                        Default
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                          {imagePreviews.length < 5 && (
-                            <div
-                              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                                isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-                              }`}
-                              onDragOver={handleDragOver}
-                              onDragLeave={handleDragLeave}
-                              onDrop={handleDrop}
-                              onClick={() => activeUploads.length === 0 && fileInputRef.current.click()}
-                              style={{
-                                cursor: activeUploads.length > 0 ? "wait" : "pointer",
-                              }}
-                            >
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={handleFileInputChange}
-                                multiple
-                                disabled={activeUploads.length > 0}
+                <div className="md:col-span-2">
+                  <FormLabel>Product Images (Max 5, 2MB each)</FormLabel>
+                  <div className="space-y-4 mt-2">
+                    {imagePreviews.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        {imagePreviews.map((preview, index) => {
+                          const isUploading = activeUploads.includes(index);
+                          const progress = uploadProgress[index] || 0;
+                          return (
+                            <div key={index} className="relative group h-32">
+                              <img
+                                src={preview || "/placeholder.svg"}
+                                alt={`Product preview ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg border bg-gray-50"
                               />
-                              <div className="flex flex-col items-center justify-center gap-2">
-                                {activeUploads.length > 0 ? (
-                                  <>
-                                    <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
-                                    <p className="text-sm font-medium text-gray-700">
-                                      Uploading {activeUploads.length} image(s)...
-                                    </p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <UploadCloud className="h-10 w-10 text-gray-400" />
-                                    <div className="space-y-1">
-                                      <p className="text-sm font-medium text-gray-700">
-                                        Drag and drop images here ({5 - imagePreviews.length} remaining)
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        JPG, PNG, or WebP only • Max 2MB per image
-                                      </p>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="mt-2 bg-transparent"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        fileInputRef.current.click()
-                                      }}
-                                      disabled={activeUploads.length > 0}
-                                    >
-                                      Select Images
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
+                              {isUploading && (
+                                <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center rounded-lg">
+                                  <div className="w-4/5 bg-gray-200 rounded-full h-1.5">
+                                    <div
+                                      className="bg-blue-600 h-1.5 rounded-full"
+                                      style={{ width: `${progress}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-white text-xs mt-2">
+                                    {progress}%{" "}
+                                    {progress < 100
+                                      ? "Uploading..."
+                                      : "Processing..."}
+                                  </span>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => cancelUpload(index)}
+                                className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-1 shadow-sm transition-all"
+                              >
+                                <X className="h-4 w-4 text-gray-700" />
+                              </button>
+                              {!isUploading && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAsDefault(index)}
+                                  className={`absolute top-2 left-2 rounded-full p-1 transition-all ${
+                                    defaultImageIndex === index
+                                      ? "bg-yellow-400 text-yellow-800"
+                                      : "bg-white/90 hover:bg-white text-gray-700"
+                                  }`}
+                                >
+                                  <Star className="h-4 w-4" />
+                                </button>
+                              )}
+                              {!isUploading && defaultImageIndex === index && (
+                                <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white text-xs py-1 px-2 rounded text-center">
+                                  Default
+                                </div>
+                              )}
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {imagePreviews.length < 5 && (
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                          isDragging
+                            ? "border-primary bg-primary/5"
+                            : "border-gray-300"
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={() =>
+                          activeUploads.length === 0 &&
+                          fileInputRef.current.click()
+                        }
+                        style={{
+                          cursor: activeUploads.length > 0 ? "wait" : "pointer",
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          ref={fileInputRef}
+                          onChange={handleFileInputChange}
+                          multiple
+                          disabled={activeUploads.length > 0}
+                        />
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          {activeUploads.length > 0 ? (
+                            <>
+                              <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
+                              <p className="text-sm font-medium text-gray-700">
+                                Uploading {activeUploads.length} image(s)...
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud className="h-10 w-10 text-gray-400" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-gray-700">
+                                  Drag and drop images here (
+                                  {5 - imagePreviews.length} remaining)
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  JPG, PNG, or WebP only • Max 2MB per image
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 bg-transparent"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  fileInputRef.current.click();
+                                }}
+                                disabled={activeUploads.length > 0}
+                              >
+                                Select Images
+                              </Button>
+                            </>
                           )}
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <FormField
                   control={form.control}
                   name="description"
@@ -626,7 +732,11 @@ export default function AddProductPage() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Enter product description" className="min-h-[120px]" {...field} />
+                        <Textarea
+                          placeholder="Enter product description"
+                          className="min-h-[120px]"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -642,8 +752,8 @@ export default function AddProductPage() {
                         onChange={(e) => setCurrentFeature(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            e.preventDefault()
-                            addFeature()
+                            e.preventDefault();
+                            addFeature();
                           }
                         }}
                         disabled={activeUploads.length > 0 || isSubmitting}
@@ -652,14 +762,21 @@ export default function AddProductPage() {
                         type="button"
                         onClick={addFeature}
                         variant="outline"
-                        disabled={activeUploads.length > 0 || isSubmitting || !currentFeature.trim()}
+                        disabled={
+                          activeUploads.length > 0 ||
+                          isSubmitting ||
+                          !currentFeature.trim()
+                        }
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                     <div className="space-y-2">
                       {features.map((feature, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                        >
                           <span className="text-sm">{feature}</span>
                           <Button
                             type="button"
@@ -690,7 +807,9 @@ export default function AddProductPage() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Active Product</FormLabel>
-                        <p className="text-sm text-muted-foreground">This product will be visible to customers</p>
+                        <p className="text-sm text-muted-foreground">
+                          This product will be visible to customers
+                        </p>
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -706,10 +825,18 @@ export default function AddProductPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isLoadingCategories || activeUploads.length > 0}>
+                <Button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    isLoadingCategories ||
+                    activeUploads.length > 0
+                  }
+                >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Product...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
+                      Product...
                     </>
                   ) : (
                     "Create Product"
@@ -721,5 +848,5 @@ export default function AddProductPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
