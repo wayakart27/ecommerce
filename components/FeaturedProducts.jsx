@@ -363,6 +363,9 @@ const FeaturedProducts = () => {
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {products.map((product, index) => {
                     const isLastProduct = index === products.length - 1
+                    const isOnSale = product.discountedPrice && product.discountedPrice < product.price
+                    const isOutOfStock = product.stock <= 0
+                    
                     return (
                       <div
                         ref={isLastProduct ? lastProductRef : null}
@@ -385,11 +388,24 @@ const FeaturedProducts = () => {
                           </button>
                         </div>
 
-                        {product?.isNew && (
-                          <span className="absolute top-4 left-4 px-3 py-1 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-xs font-medium rounded-full shadow-md z-10">
-                            New
-                          </span>
-                        )}
+                        {/* Badge container */}
+                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 items-start">
+                          {isOutOfStock && (
+                            <span className="px-3 py-1 bg-gray-700 text-white text-xs font-medium rounded-full shadow-md">
+                              Out of Stock
+                            </span>
+                          )}
+                          {isOnSale && !isOutOfStock && (
+                            <span className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded-full shadow-md">
+                              Sale
+                            </span>
+                          )}
+                          {product?.isNew && !isOutOfStock && (
+                            <span className="px-3 py-1 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-xs font-medium rounded-full shadow-md">
+                              New
+                            </span>
+                          )}
+                        </div>
 
                         <div className="relative aspect-square overflow-hidden rounded-xl mb-5 w-full bg-gradient-to-br from-gray-100 to-gray-200">
                           <img
@@ -401,6 +417,13 @@ const FeaturedProducts = () => {
                               e.target.src = "/placeholder.svg";
                             }}
                           />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <span className="text-white font-bold text-lg bg-black/70 px-4 py-2 rounded-lg">
+                                Out of Stock
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="space-y-3">

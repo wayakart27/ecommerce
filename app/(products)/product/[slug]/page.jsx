@@ -1,16 +1,15 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Zap, Shield, Truck, RotateCcw, Heart, Share2, ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Heart, Share2, ChevronRightIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import AddToCartButton from "@/components/AddToCartButton"
 import { getProductBySlugAndId, getRelatedProducts } from "@/actions/products"
 import WhatsAppButton from "@/components/WhatsAppButton"
-import { motion, AnimatePresence } from "framer-motion"
 
 export default function ProductPage() {
   const params = useParams()
@@ -23,12 +22,7 @@ export default function ProductPage() {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [zoomImage, setZoomImage] = useState(false)
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 })
-  const [showFullDescription, setShowFullDescription] = useState(false)
-  const [showAllFeatures, setShowAllFeatures] = useState(false)
-  const descriptionRef = useRef(null)
-  const featuresRef = useRef(null)
-  const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false)
-  const [isFeaturesOverflowing, setIsFeaturesOverflowing] = useState(false)
+  const [activeTab, setActiveTab] = useState("description")
 
   const getCategoryName = (category) => {
     if (typeof category === "string") return category
@@ -38,11 +32,30 @@ export default function ProductPage() {
 
   // Helper function to extract image URL from either string or object
   const getImageUrl = (image) => {
-    if (!image) return "/placeholder.svg";
-    if (typeof image === 'string') return image;
-    if (typeof image === 'object' && image.url) return image.url;
-    return "/placeholder.svg";
-  };
+    if (!image) return "/placeholder.svg"
+    if (typeof image === "string") return image
+    if (typeof image === "object" && image.url) return image.url
+    return "/placeholder.svg"
+  }
+
+  // Parse features into key-value pairs
+  const parseFeatures = (features) => {
+    if (!features || !Array.isArray(features)) return []
+
+    return features
+      .map((feature) => {
+        if (typeof feature !== "string") return null
+
+        const colonIndex = feature.indexOf(":")
+        if (colonIndex === -1) return null
+
+        return {
+          key: feature.substring(0, colonIndex).trim(),
+          value: feature.substring(colonIndex + 1).trim(),
+        }
+      })
+      .filter((feature) => feature !== null)
+  }
 
   const slugWithId = params?.slug || ""
   const prdIndex = slugWithId.indexOf("-PRD-")
@@ -66,7 +79,7 @@ export default function ProductPage() {
 
   const handleImageHover = (e) => {
     if (!zoomImage) return
-    
+
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - left) / width) * 100
     const y = ((e.clientY - top) / height) * 100
@@ -87,33 +100,13 @@ export default function ProductPage() {
           url: window.location.href,
         })
       } catch (err) {
-        console.log('Error sharing:', err)
+        console.log("Error sharing:", err)
       }
     } else {
       navigator.clipboard.writeText(window.location.href)
-      alert('Link copied to clipboard!')
+      alert("Link copied to clipboard!")
     }
   }
-
-  // Check if text is overflowing
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (descriptionRef.current) {
-        setIsDescriptionOverflowing(
-          descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight
-        )
-      }
-      if (featuresRef.current) {
-        setIsFeaturesOverflowing(
-          featuresRef.current.scrollHeight > featuresRef.current.clientHeight
-        )
-      }
-    }
-
-    checkOverflow()
-    window.addEventListener('resize', checkOverflow)
-    return () => window.removeEventListener('resize', checkOverflow)
-  }, [product])
 
   useEffect(() => {
     const fetchProductAndRelated = async () => {
@@ -201,9 +194,7 @@ export default function ProductPage() {
           <XCircle className="h-16 w-16 text-white" />
         </div>
         <h2 className="mb-2 text-2xl font-bold text-gray-900">Oops!</h2>
-        <p className="mb-6 max-w-md text-gray-600">
-          {error || "The product you're looking for is not available."}
-        </p>
+        <p className="mb-6 max-w-md text-gray-600">{error || "The product you're looking for is not available."}</p>
         <Link
           href="/"
           className="bg-gradient-to-r from-blue-600 to-blue-400 px-6 py-3 font-medium text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:from-blue-700 hover:to-blue-500"
@@ -213,6 +204,9 @@ export default function ProductPage() {
       </div>
     )
   }
+
+  // Parse the product features
+  const productFeatures = parseFeatures(product.features || [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white py-8">
@@ -240,8 +234,8 @@ export default function ProductPage() {
           {/* Image Gallery */}
           <div className="space-y-6">
             {/* Main Image with Zoom */}
-            <div 
-              className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100 cursor-zoom-in"
+            <div
+              className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100 cursor-zoom-in group"
               onMouseEnter={() => setZoomImage(true)}
               onMouseLeave={() => setZoomImage(false)}
               onMouseMove={handleImageHover}
@@ -249,18 +243,18 @@ export default function ProductPage() {
               {product?.images?.length > 0 ? (
                 <>
                   <Image
-                    src={getImageUrl(product.images[currentImageIndex])}
+                    src={getImageUrl(product.images[currentImageIndex]) || "/placeholder.svg"}
                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
                     fill
                     className="object-cover transition-transform duration-300"
                     style={{
-                      transform: zoomImage ? `scale(1.5)` : 'scale(1)',
-                      transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                      transform: zoomImage ? `scale(1.5)` : "scale(1)",
+                      transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
                     }}
                     priority
                     sizes="(max-width: 768px) 100vw, 50vw"
                     onError={(e) => {
-                      e.target.src = "/placeholder.svg";
+                      e.target.src = "/placeholder.svg"
                     }}
                   />
                   {product.images.length > 1 && (
@@ -269,7 +263,7 @@ export default function ProductPage() {
                         variant="ghost"
                         size="icon"
                         onClick={prevImage}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </Button>
@@ -277,7 +271,7 @@ export default function ProductPage() {
                         variant="ghost"
                         size="icon"
                         onClick={nextImage}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <ChevronRight className="h-5 w-5" />
                       </Button>
@@ -288,19 +282,19 @@ export default function ProductPage() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleWishlist}
-                      className={`rounded-full backdrop-blur-sm ${
-                        isWishlisted 
-                          ? 'bg-red-500 text-white hover:bg-red-600' 
-                          : 'bg-white/90 text-gray-700 hover:bg-white'
+                      className={`rounded-full backdrop-blur-sm transition-all ${
+                        isWishlisted
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-white/90 text-gray-700 hover:bg-white hover:scale-110"
                       }`}
                     >
-                      <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                      <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={shareProduct}
-                      className="rounded-full bg-white/90 text-gray-700 backdrop-blur-sm hover:bg-white"
+                      className="rounded-full bg-white/90 text-gray-700 backdrop-blur-sm hover:bg-white hover:scale-110 transition-all"
                     >
                       <Share2 className="h-5 w-5" />
                     </Button>
@@ -324,19 +318,19 @@ export default function ProductPage() {
                     key={index}
                     onClick={() => selectImage(index)}
                     className={`flex-shrink-0 h-20 w-20 rounded-xl border-2 transition-all ${
-                      currentImageIndex === index 
-                        ? 'border-blue-600 scale-105' 
-                        : 'border-gray-200 hover:border-gray-300'
+                      currentImageIndex === index
+                        ? "border-blue-600 scale-105 shadow-md"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <Image
-                      src={getImageUrl(image)}
+                      src={getImageUrl(image) || "/placeholder.svg"}
                       alt={`Thumbnail ${index + 1}`}
                       width={80}
                       height={80}
                       className="h-full w-full object-cover rounded-lg"
                       onError={(e) => {
-                        e.target.src = "/placeholder.svg";
+                        e.target.src = "/placeholder.svg"
                       }}
                     />
                   </button>
@@ -373,9 +367,7 @@ export default function ProductPage() {
                 {product.stock > 0 ? (
                   <>
                     <CheckCircle className="h-6 w-6 text-green-600" />
-                    <span className="font-medium text-green-700">
-                      In Stock
-                    </span>
+                    <span className="font-medium text-green-700">In Stock</span>
                   </>
                 ) : (
                   <>
@@ -386,80 +378,66 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Description in Single Column */}
+            {/* Tabbed Content for Description and Specifications */}
             <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Description</h2>
-              <div 
-                ref={descriptionRef}
-                className={`leading-relaxed text-gray-600 transition-all duration-300 ${
-                  !showFullDescription ? 'line-clamp-6' : ''
-                }`}
-              >
-                {product.description}
-              </div>
-              {isDescriptionOverflowing && (
-                <button
-                  onClick={() => setShowFullDescription(!showFullDescription)}
-                  className="mt-2 flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm"
-                >
-                  {showFullDescription ? (
-                    <>
-                      <ChevronUp className="h-4 w-4 mr-1" />
-                      Show Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-4 w-4 mr-1" />
-                      Read More
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Features in Three Columns */}
-            {product.features?.length > 0 && (
-              <div className="border-t border-gray-200 pt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Key Features</h2>
-                <div 
-                  ref={featuresRef}
-                  className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 transition-all duration-300 ${
-                    !showAllFeatures && product.features.length > 6 ? 'max-h-96 overflow-hidden' : ''
-                  }`}
-                >
-                  {product.features.map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-start text-gray-600 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <CheckCircle className="mt-0.5 mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
-                      <span className="text-sm leading-relaxed">{feature}</span>
-                    </motion.div>
-                  ))}
-                </div>
-                {product.features.length > 6 && (
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
                   <button
-                    onClick={() => setShowAllFeatures(!showAllFeatures)}
-                    className="mt-4 flex items-center justify-center w-full text-blue-600 hover:text-blue-700 font-medium text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    onClick={() => setActiveTab("description")}
+                    className={`py-4 px-1 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === "description"
+                        ? "border-black text-black"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
                   >
-                    {showAllFeatures ? (
-                      <>
-                        <ChevronUp className="h-4 w-4 mr-1" />
-                        Show Less Features
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 mr-1" />
-                        Show All Features ({product.features.length})
-                      </>
-                    )}
+                    Description
                   </button>
+                  <button
+                    onClick={() => setActiveTab("specifications")}
+                    className={`py-4 px-1 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === "specifications"
+                        ? "border-black text-black"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    Specifications
+                  </button>
+                </nav>
+              </div>
+
+              <div className="mt-6">
+                {activeTab === "description" && (
+                  <div className="leading-relaxed text-gray-600 space-y-4">
+                    <p>{product.description}</p>
+                  </div>
+                )}
+
+                {activeTab === "specifications" && (
+                  <div className="space-y-4">
+                    {productFeatures.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-x-6 gap-y-2">
+                        {productFeatures.map((feature, index) => (
+                          <div
+                            key={index}
+                            className="flex flex-col border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                          >
+                            <div className="font-bold text-gray-700 capitalize mb-1">{feature.key}</div>
+                            <div className="text-gray-600">{feature.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-bold text-gray-900">Note:</h4>
+                          <p className="text-gray-600">This product has no specifications.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
 
             {/* Add to Cart Section */}
             <div className="border-t border-gray-200 pt-6">
@@ -470,7 +448,7 @@ export default function ProductPage() {
                     resetKey={product._id}
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all py-4 px-6 text-lg"
                   />
-                  <WhatsAppButton 
+                  <WhatsAppButton
                     product={product}
                     className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-medium rounded-xl py-4 px-6 text-lg transition-all"
                   />
@@ -479,7 +457,7 @@ export default function ProductPage() {
                 <div className="rounded-xl bg-gray-100 p-6 text-center">
                   <p className="font-medium text-gray-700 mb-2">This product is currently out of stock</p>
                   <p className="text-sm text-gray-600">Contact us to be notified when it's back in stock</p>
-                  <WhatsAppButton 
+                  <WhatsAppButton
                     product={product}
                     className="mt-4 bg-gradient-to-r from-blue-600 to-blue-400 text-white font-medium rounded-xl py-3 px-6"
                   />
@@ -492,7 +470,12 @@ export default function ProductPage() {
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
-            <h3 className="mb-8 text-2xl font-bold text-gray-900">You may also like</h3>
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-bold text-gray-900">You may also like</h3>
+              <Link href="/#products" className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                View all <ChevronRightIcon className="h-4 w-4" />
+              </Link>
+            </div>
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
               {relatedLoading
                 ? [...Array(4)].map((_, i) => (
@@ -502,40 +485,69 @@ export default function ProductPage() {
                       <Skeleton className="h-4 w-1/2" />
                     </div>
                   ))
-                : relatedProducts.map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/product/${product.slug}-${product.productId}`}
-                      className="group overflow-hidden rounded-xl bg-white shadow-sm hover:shadow-xl transition-all duration-300"
-                    >
-                      <div className="relative aspect-square bg-gray-100">
-                        <Image
-                          src={getImageUrl(product.defaultImage)}
-                          alt={product.name}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
-                          onError={(e) => {
-                            e.target.src = "/placeholder.svg";
-                          }}
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h4 className="line-clamp-1 font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {product.name}
-                        </h4>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="font-bold text-blue-600">
-                            {formatPrice(product.discountedPrice || product.price)}
-                          </span>
-                          {product.discountedPrice && (
-                            <span className="text-sm text-gray-500 line-through">
-                              {formatPrice(product.price)}
+                : relatedProducts.map((product) => {
+                    const isOnSale = product.discountedPrice && product.discountedPrice < product.price
+                    const isOutOfStock = product.stock <= 0
+                    
+                    return (
+                      <Link
+                        key={product.id}
+                        href={`/product/${product.slug}-${product.productId}`}
+                        className="group overflow-hidden rounded-xl bg-white shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative"
+                      >
+                        {/* Badge container */}
+                        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2 items-start">
+                          {isOutOfStock && (
+                            <span className="px-2 py-1 bg-gray-700 text-white text-xs font-medium rounded-full shadow-md">
+                              Out of Stock
+                            </span>
+                          )}
+                          {isOnSale && !isOutOfStock && (
+                            <span className="px-2 py-1 bg-red-600 text-white text-xs font-medium rounded-full shadow-md">
+                              SALE
+                            </span>
+                          )}
+                          {product?.isNew && !isOutOfStock && (
+                            <span className="px-2 py-1 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-xs font-medium rounded-full shadow-md">
+                              New
                             </span>
                           )}
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+
+                        <div className="relative aspect-square bg-gray-100">
+                          <Image
+                            src={getImageUrl(product.defaultImage) || "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              e.target.src = "/placeholder.svg"
+                            }}
+                          />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <span className="text-white font-bold text-sm bg-black/70 px-3 py-1.5 rounded-lg">
+                                Out of Stock
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <h4 className="line-clamp-1 font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                            {product.name}
+                          </h4>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="font-bold text-blue-600">
+                              {formatPrice(product.discountedPrice || product.price)}
+                            </span>
+                            {product.discountedPrice && (
+                              <span className="text-sm text-gray-500 line-through">{formatPrice(product.price)}</span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
             </div>
           </div>
         )}

@@ -1320,10 +1320,12 @@ export async function getRelatedProducts(currentProductId, categoryName) {
           price: product.price,
           purchasePrice: product.purchasePrice || 0,
           discountedPrice: product.discountedPrice || null,
+          stock: product.stock || 0, // Added stock field
           defaultImage: defaultImageUrl, // Now always a string URL
           category: product.category?.name || "uncategorized",
           productId: product.productId || "",
           slug: product.slug || "",
+          isNew: product.isNew || false, // Added isNew field
         };
       });
     }
@@ -1345,10 +1347,12 @@ export async function getRelatedProducts(currentProductId, categoryName) {
         price: product.price,
         purchasePrice: product.purchasePrice || 0,
         discountedPrice: product.discountedPrice || null,
+        stock: product.stock || 0, // Added stock field
         defaultImage: defaultImageUrl, // Now always a string URL
         category: product.category?.name || "uncategorized",
         productId: product.productId,
         slug: product.slug,
+        isNew: product.isNew || false, // Added isNew field
       };
     });
   } catch (error) {
