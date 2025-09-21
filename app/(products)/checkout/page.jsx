@@ -1074,6 +1074,7 @@ const CheckoutPage = () => {
                     <span className="text-xs text-gray-400">No image</span>
                   </div>
                 )}
+                
               </div>
 
               {/* Product Details */}
