@@ -95,27 +95,43 @@ export const getReferralData = async (userId) => {
     }
 
     const [user, referralStats] = await Promise.all([
-      User.findById(userId)
-        .select("name email referralProgram")
-        .populate({
-          path: "referralProgram.pendingReferrals.referee",
-          select: "name email createdAt",
-          options: { strictPopulate: false }
-        })
-        .populate({
-          path: "referralProgram.completedReferrals.referee",
-          select: "name email",
-          options: { strictPopulate: false }
-        })
-        .lean(),
       User.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(userId) } },
         {
-          $unwind: {
-            path: "$referralProgram.completedReferrals",
-            preserveNullAndEmptyArrays: true,
-          },
+          $lookup: {
+            from: 'users',
+            localField: 'referralProgram.pendingReferrals.referee',
+            foreignField: '_id',
+            as: 'pendingReferees'
+          }
         },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'referralProgram.completedReferrals.referee',
+            foreignField: '_id',
+            as: 'completedReferees'
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            email: 1,
+            'referralProgram.referralCode': 1,
+            'referralProgram.referredBy': 1,
+            'referralProgram.pendingReferrals': 1,
+            'referralProgram.completedReferrals': 1,
+            'referralProgram.bankDetails': 1,
+            'referralProgram.payoutHistory': 1,
+            'referralProgram.minPayoutAmount': 1,
+            pendingReferees: { $slice: ['$pendingReferees', 100] },
+            completedReferees: { $slice: ['$completedReferees', 100] }
+          }
+        }
+      ]),
+      User.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+        { $unwind: { path: '$referralProgram.completedReferrals', preserveNullAndEmptyArrays: true } },
         {
           $group: {
             _id: null,
@@ -124,142 +140,207 @@ export const getReferralData = async (userId) => {
                 $cond: [
                   {
                     $and: [
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.status",
-                          "completed",
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.paymentStatus",
-                          "success",
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.paymentRequest",
-                          true,
-                        ],
-                      },
-                    ],
+                      { $eq: ['$referralProgram.completedReferrals.status', 'completed'] },
+                      { $eq: ['$referralProgram.completedReferrals.paymentStatus', 'success'] },
+                      { $eq: ['$referralProgram.completedReferrals.paymentRequest', true] }
+                    ]
                   },
-                  {
-                    $ifNull: ["$referralProgram.completedReferrals.amount", 0],
-                  },
-                  0,
-                ],
-              },
+                  { $ifNull: ['$referralProgram.completedReferrals.amount', 0] },
+                  0
+                ]
+              }
             },
             pendingEarnings: {
               $sum: {
                 $cond: [
                   {
                     $and: [
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.status",
-                          "pending",
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.paymentStatus",
-                          "pending",
-                        ],
-                      },
-                      {
-                        $eq: [
-                          "$referralProgram.completedReferrals.paymentRequest",
-                          false,
-                        ],
-                      },
-                    ],
+                      { $eq: ['$referralProgram.completedReferrals.status', 'pending'] },
+                      { $eq: ['$referralProgram.completedReferrals.paymentStatus', 'pending'] },
+                      { $eq: ['$referralProgram.completedReferrals.paymentRequest', false] }
+                    ]
                   },
-                  {
-                    $ifNull: ["$referralProgram.completedReferrals.amount", 0],
-                  },
-                  0,
-                ],
-              },
+                  { $ifNull: ['$referralProgram.completedReferrals.amount', 0] },
+                  0
+                ]
+              }
             },
             totalCompleted: {
               $sum: {
                 $cond: [
-                  {
-                    $eq: [
-                      "$referralProgram.completedReferrals.status",
-                      "completed",
-                    ],
-                  },
+                  { $eq: ['$referralProgram.completedReferrals.status', 'completed'] },
                   1,
-                  0,
-                ],
-              },
+                  0
+                ]
+              }
             },
             totalPending: {
               $sum: {
                 $cond: [
-                  {
-                    $eq: [
-                      "$referralProgram.completedReferrals.status",
-                      "pending",
-                    ],
-                  },
+                  { $eq: ['$referralProgram.completedReferrals.status', 'pending'] },
                   1,
-                  0,
-                ],
-              },
+                  0
+                ]
+              }
             },
-          },
-        },
-      ]),
+            totalRejected: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$referralProgram.completedReferrals.status', 'rejected'] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ])
     ]);
 
-    if (!user) {
+    if (!user || user.length === 0) {
       return { success: false, message: "User not found" };
     }
 
-    const referralProgram = user.referralProgram || {};
+    const userData = user[0];
+    const referralProgram = userData.referralProgram || {};
+    const stats = referralStats[0] || {};
 
-    // Process pending and completed referrals
-    const pendingReferrals = (referralProgram.pendingReferrals || []).map(
-      (ref) => ({
+    // Enhanced safeSerialize function that properly handles MongoDB objects
+    const safeSerialize = (obj) => {
+      if (obj === null || obj === undefined) return null;
+      
+      // Handle MongoDB ObjectId
+      if (obj instanceof mongoose.Types.ObjectId) {
+        return obj.toString();
+      }
+      
+      // Handle Date objects
+      if (obj instanceof Date) {
+        return obj.toISOString();
+      }
+      
+      // Handle Buffer objects (like minPayoutAmount.buffer)
+      if (obj instanceof Buffer) {
+        return obj.toString();
+      }
+      
+      // Handle objects with toObject method (Mongoose documents)
+      if (typeof obj.toObject === 'function') {
+        obj = obj.toObject();
+      }
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        return obj.map(item => safeSerialize(item));
+      }
+      
+      // Handle plain objects
+      if (typeof obj === 'object') {
+        const result = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            result[key] = safeSerialize(obj[key]);
+          }
+        }
+        return result;
+      }
+      
+      // Return primitives as-is
+      return obj;
+    };
+
+    // Create maps for efficient referee lookup
+    const pendingRefereeMap = new Map();
+    userData.pendingReferees?.forEach(referee => {
+      pendingRefereeMap.set(referee._id.toString(), safeSerialize(referee));
+    });
+
+    const completedRefereeMap = new Map();
+    userData.completedReferees?.forEach(referee => {
+      completedRefereeMap.set(referee._id.toString(), safeSerialize(referee));
+    });
+
+    // Map pending referrals with referee data
+    const pendingReferrals = (referralProgram.pendingReferrals || []).map((ref) => {
+      const refereeId = ref.referee?.toString();
+      const referee = refereeId ? pendingRefereeMap.get(refereeId) : null;
+      
+      return {
         ...safeSerialize(ref),
-        referee: ref.referee ? safeSerialize(ref.referee) : null,
+        _id: ref._id?.toString() || mongoose.Types.ObjectId().toString(),
+        referee: referee ? {
+          _id: referee._id,
+          name: referee.name,
+          email: referee.email,
+          createdAt: referee.createdAt
+        } : null,
         date: ref.date?.toISOString() || new Date().toISOString(),
-      })
-    );
+      };
+    });
 
-    const completedReferrals = (referralProgram.completedReferrals || []).map(
-      (ref) => ({
+    // Map completed referrals with referee data
+    const completedReferrals = (referralProgram.completedReferrals || []).map((ref) => {
+      const refereeId = ref.referee?.toString();
+      const referee = refereeId ? completedRefereeMap.get(refereeId) : null;
+      
+      return {
         ...safeSerialize(ref),
-        referee: ref.referee ? safeSerialize(ref.referee) : null,
+        _id: ref._id?.toString() || mongoose.Types.ObjectId().toString(),
+        referee: referee ? {
+          _id: referee._id,
+          name: referee.name,
+          email: referee.email
+        } : null,
         amount: ref.amount || 0,
         date: ref.date?.toISOString() || new Date().toISOString(),
-      })
+      };
+    });
+
+    // Process payout history
+    const payoutHistory = (referralProgram.payoutHistory || []).map(payout => 
+      safeSerialize(payout)
     );
 
-    return {
+    // Convert settings to plain object
+    const safeSettings = safeSerialize(settings);
+
+    // Ensure minPayoutAmount is properly converted
+    let minPayoutAmount = referralProgram.minPayoutAmount;
+    if (minPayoutAmount && minPayoutAmount.buffer) {
+      minPayoutAmount = minPayoutAmount.toString();
+    }
+
+    const result = {
       success: true,
       data: {
-        ...safeSerialize(referralProgram),
+        referralCode: referralProgram.referralCode,
+        referredBy: safeSerialize(referralProgram.referredBy),
+        bankDetails: safeSerialize(referralProgram.bankDetails),
+        minPayoutAmount: safeSerialize(minPayoutAmount),
         pendingReferrals,
         completedReferrals,
+        payoutHistory,
         stats: {
-          totalEarned: referralStats[0]?.totalEarned || 0,
-          pendingEarnings: referralStats[0]?.pendingEarnings || 0,
-          totalCompleted: referralStats[0]?.totalCompleted || 0,
-          totalPending: referralStats[0]?.totalPending || 0,
-          minPayoutAmount: settings.minPayoutAmount,
-          referralPercentage: settings.referralPercentage,
+          totalEarned: stats.totalEarned || 0,
+          pendingEarnings: stats.pendingEarnings || 0,
+          totalCompleted: stats.totalCompleted || 0,
+          totalPending: stats.totalPending || 0,
+          totalRejected: stats.totalRejected || 0,
+          minPayoutAmount: safeSettings?.minPayoutAmount || 0,
+          referralPercentage: safeSettings?.referralPercentage || 0,
         },
-        referralLink: `${process.env.NEXTAUTH_URL}/auth/register?ref=${
-          referralProgram.referralCode || ""
-        }`,
+        referralLink: `${process.env.NEXTAUTH_URL}/auth/register?ref=${referralProgram.referralCode || ''}`,
+        userInfo: {
+          name: userData.name,
+          email: userData.email
+        }
       },
       message: "Referral data retrieved successfully",
     };
+
+    // Final deep serialization to ensure no MongoDB objects remain
+    return JSON.parse(JSON.stringify(result));
+
   } catch (error) {
     console.error("Get referral data error:", error);
     return {
@@ -269,7 +350,6 @@ export const getReferralData = async (userId) => {
     };
   }
 };
-
 
 export const getReferralList = async ({
   userId,
