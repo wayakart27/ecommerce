@@ -1037,6 +1037,19 @@ const CheckoutPage = () => {
           const showError = isOutOfStock || isInsufficientStock;
           const effectivePrice = getEffectivePrice(item);
 
+          const getImageUrl = (image) => {
+            if (typeof image === "string") return image;
+            if (image?.url) return image.url;
+            return null;
+          };
+
+          // Helper function to get image alt text
+          const getImageAlt = (image, fallback = "Product image") => {
+            if (typeof image === "string") return fallback;
+            if (image?.alt) return image.alt;
+            return fallback;
+          };
+
           return (
             <div key={item.id} className="flex py-3 relative group">
               {/* Show overlay only if actually out of stock */}
@@ -1062,10 +1075,10 @@ const CheckoutPage = () => {
 
               {/* Product Image */}
               <div className="w-16 h-16 flex-shrink-0 relative">
-                {item?.defaultImage ? (
+                {getImageUrl(item?.defaultImage) ? (
                   <Image
-                    src={item.defaultImage}
-                    alt={item.name}
+                    src={getImageUrl(item.defaultImage)}
+                    alt={getImageAlt(item.defaultImage, item.name)}
                     fill
                     className="object-cover rounded-md"
                   />
@@ -1074,9 +1087,7 @@ const CheckoutPage = () => {
                     <span className="text-xs text-gray-400">No image</span>
                   </div>
                 )}
-                
               </div>
-
               {/* Product Details */}
               <div className="ml-4 flex-1">
                 <div className="flex justify-between items-start">
