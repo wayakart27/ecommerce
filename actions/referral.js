@@ -252,47 +252,60 @@ export const getReferralData = async (userId) => {
     // Create maps for efficient referee lookup
     const pendingRefereeMap = new Map();
     userData.pendingReferees?.forEach(referee => {
-      pendingRefereeMap.set(referee._id.toString(), safeSerialize(referee));
+      const serializedReferee = safeSerialize(referee);
+      if (serializedReferee && serializedReferee._id) {
+        pendingRefereeMap.set(serializedReferee._id.toString(), serializedReferee);
+      }
     });
 
     const completedRefereeMap = new Map();
     userData.completedReferees?.forEach(referee => {
-      completedRefereeMap.set(referee._id.toString(), safeSerialize(referee));
+      const serializedReferee = safeSerialize(referee);
+      if (serializedReferee && serializedReferee._id) {
+        completedRefereeMap.set(serializedReferee._id.toString(), serializedReferee);
+      }
     });
+
+    // Generate a simple ID for missing _id fields
+    const generateSimpleId = () => {
+      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    };
 
     // Map pending referrals with referee data
     const pendingReferrals = (referralProgram.pendingReferrals || []).map((ref) => {
-      const refereeId = ref.referee?.toString();
+      const serializedRef = safeSerialize(ref);
+      const refereeId = serializedRef?.referee?.toString();
       const referee = refereeId ? pendingRefereeMap.get(refereeId) : null;
       
       return {
-        ...safeSerialize(ref),
-        _id: ref._id?.toString() || mongoose.Types.ObjectId().toString(),
+        ...serializedRef,
+        _id: serializedRef?._id || generateSimpleId(),
         referee: referee ? {
           _id: referee._id,
           name: referee.name,
           email: referee.email,
           createdAt: referee.createdAt
         } : null,
-        date: ref.date?.toISOString() || new Date().toISOString(),
+        date: serializedRef?.date || new Date().toISOString(),
       };
     });
 
     // Map completed referrals with referee data
     const completedReferrals = (referralProgram.completedReferrals || []).map((ref) => {
-      const refereeId = ref.referee?.toString();
+      const serializedRef = safeSerialize(ref);
+      const refereeId = serializedRef?.referee?.toString();
       const referee = refereeId ? completedRefereeMap.get(refereeId) : null;
       
       return {
-        ...safeSerialize(ref),
-        _id: ref._id?.toString() || mongoose.Types.ObjectId().toString(),
+        ...serializedRef,
+        _id: serializedRef?._id || generateSimpleId(),
         referee: referee ? {
           _id: referee._id,
           name: referee.name,
           email: referee.email
         } : null,
-        amount: ref.amount || 0,
-        date: ref.date?.toISOString() || new Date().toISOString(),
+        amount: serializedRef?.amount || 0,
+        date: serializedRef?.date || new Date().toISOString(),
       };
     });
 
@@ -350,7 +363,6 @@ export const getReferralData = async (userId) => {
     };
   }
 };
-
 export const getReferralList = async ({
   userId,
   type = "pending",
