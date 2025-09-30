@@ -1369,7 +1369,7 @@ const CheckoutPage = () => {
                 <div className="space-y-2 text-sm">
                   <p className="flex items-center text-gray-600">
                     <span className="text-blue-600 mr-2">•</span> Phone:
-                    08160126157
+                    08029138978, 08160126157
                   </p>
                 </div>
               </div>
