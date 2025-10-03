@@ -1,3 +1,4 @@
+// models/User.js
 import mongoose from 'mongoose';
 import TwoFactorConfirmation from './two-factor-confirmation';
 import { Order } from './Order';
@@ -7,84 +8,38 @@ const generateReferralCode = () => {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 };
 
-// Define the referral sub-schemas first
+/* ===========================
+   SUB-SCHEMAS
+=========================== */
 const pendingReferralSchema = new mongoose.Schema({
-  referee: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
-  order: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Order', 
-    default: null 
-  },
-  date: {
-    type: Date,
-    default: Date.now
-  },
-  hasPurchased: {
-    type: Boolean,
-    default: false
-  },
+  referee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+  date: { type: Date, default: Date.now },
+  hasPurchased: { type: Boolean, default: false },
   signupIp: String,
   deviceInfo: String
 }, { _id: false });
 
 const completedReferralSchema = new mongoose.Schema({
-  referee: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
-  order: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Order',
-    default: null
-  },
+  referee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
   amount: Number,
-  date: {
-    type: Date,
-    default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'completed', 'rejected'],
-    default: 'pending'
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'success', 'rejected', 'failed', 'processing'],
-    default: 'pending'
-  },
-  paymentRequest: {
-    type: Boolean,
-    default: false
-  }
+  date: { type: Date, default: Date.now },
+  status: { type: String, enum: ['pending', 'completed', 'rejected'], default: 'pending' },
+  paymentStatus: { type: String, enum: ['pending', 'success', 'rejected', 'failed', 'processing'], default: 'pending' },
+  paymentRequest: { type: Boolean, default: false }
 }, { _id: false });
 
 const payoutHistorySchema = new mongoose.Schema({
   amount: Number,
-  requestedAt: {
-    type: Date,
-    default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'processing', 'completed', 'failed'],
-    default: 'pending'
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'success', 'rejected', 'failed', 'processing'],
-    default: 'pending'
-  },
+  requestedAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['pending', 'processing', 'completed', 'failed'], default: 'pending' },
+  paymentStatus: { type: String, enum: ['pending', 'success', 'rejected', 'failed', 'processing'], default: 'pending' },
   bankDetails: {
     accountName: String,
     accountNumber: String,
     bankCode: String,
-    verified: { 
-      type: Boolean, 
-      default: false 
-    }
+    verified: { type: Boolean, default: false }
   },
   paystackReference: String,
   processedAt: Date
@@ -94,10 +49,7 @@ const bankDetailsSchema = new mongoose.Schema({
   accountName: String,
   accountNumber: String,
   bankCode: String,
-  verified: { 
-    type: Boolean, 
-    default: false 
-  }
+  verified: { type: Boolean, default: false }
 }, { _id: false });
 
 const referralProgramSchema = new mongoose.Schema({
@@ -107,32 +59,20 @@ const referralProgramSchema = new mongoose.Schema({
     default: generateReferralCode,
     trim: true,
   },
-  referredBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   pendingReferrals: [pendingReferralSchema],
   completedReferrals: [completedReferralSchema],
   paystackRecipientCode: String,
   bankDetails: bankDetailsSchema,
-  minPayoutAmount: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'ReferralPayoutSettings' 
-  },
+  minPayoutAmount: { type: mongoose.Schema.Types.ObjectId, ref: 'ReferralPayoutSettings' },
   payoutHistory: [payoutHistorySchema]
 }, { _id: false });
 
 const deviceSchema = new mongoose.Schema({
   userAgent: String,
   ipAddress: String,
-  firstSeen: {
-    type: Date,
-    default: Date.now
-  },
-  lastSeen: {
-    type: Date,
-    default: Date.now
-  }
+  firstSeen: { type: Date, default: Date.now },
+  lastSeen: { type: Date, default: Date.now }
 }, { _id: false });
 
 const complianceSchema = new mongoose.Schema({
@@ -141,87 +81,40 @@ const complianceSchema = new mongoose.Schema({
   devices: [deviceSchema],
   lastLogin: Date,
   lastIp: String,
-  kycVerified: { 
-    type: Boolean, 
-    default: false 
-  },
+  kycVerified: { type: Boolean, default: false },
   consentTimestamp: Date
 }, { _id: false });
 
+/* ===========================
+   MAIN USER SCHEMA
+=========================== */
 const userSchema = new mongoose.Schema(
   {
-    // Basic User Information
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-      uppercase: true
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    role: {
-      type: String,
-      enum: ['Admin', 'User', 'Customer'],
-      default: 'Customer',
-    },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-    },
-    image: {
-      type: String,
-      default: '',
-    },
+    name: { type: String, required: [true, 'Name is required'], trim: true, uppercase: true },
+    email: { type: String, required: [true, 'Email is required'], unique: true, lowercase: true, trim: true },
+    role: { type: String, enum: ['Admin', 'User', 'Customer'], default: 'Customer' },
+    password: { type: String, required: [true, 'Password is required'] },
+    image: { type: String, default: '' },
 
-    // Security & Verification
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    isTwoFactorEnabled: {
-      type: Boolean,
-      default: false
-    },
-    twoFactorConfirmation: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'TwoFactorConfirmation'
-    },
-    status: {
-      type: String,
-      enum: ['Active', 'Inactive'],
-      default: 'Active',
-    },
-    phone: {
-      type: String,
-      trim: true,
-      default: '',
-    },
+    isVerified: { type: Boolean, default: false },
+    isTwoFactorEnabled: { type: Boolean, default: false },
+    twoFactorConfirmation: { type: mongoose.Schema.Types.ObjectId, ref: 'TwoFactorConfirmation' },
+    status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+    phone: { type: String, trim: true, default: '' },
 
-    // Referral Program
     referralProgram: referralProgramSchema,
-
-    // Compliance & Tracking
     compliance: complianceSchema,
-    
-    // Purchase Tracking
-    hasMadePurchase: {
-      type: Boolean,
-      default: false
-    },
+
+    hasMadePurchase: { type: Boolean, default: false },
     firstPurchaseDate: Date,
     lastPurchaseDate: Date
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Cascade delete middleware
+/* ===========================
+   MIDDLEWARE
+=========================== */
 userSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
   try {
     if (this.twoFactorConfirmation) {
@@ -245,7 +138,9 @@ userSchema.pre('findOneAndDelete', async function(next) {
   }
 });
 
-// Helper Methods
+/* ===========================
+   METHODS
+=========================== */
 userSchema.methods.checkPayoutEligibility = function() {
   const minPayout = this.referralProgram.minPayoutAmount || 500000;
   
@@ -287,50 +182,41 @@ userSchema.methods.addDevice = async function(ipAddress, userAgent) {
   await this.save();
 };
 
-// Initialize model
+/* ===========================
+   INIT MODEL
+=========================== */
 const User = mongoose.models?.User || mongoose.model('User', userSchema);
 
-// Index creation with error handling
-const setupIndexes = async () => {
+/* ===========================
+   OPTIONAL: INDEX SETUP (DEV ONLY)
+=========================== */
+export const setupIndexes = async () => {
   try {
-    // Get existing indexes
     const existingIndexes = await User.collection.indexes();
     const existingIndexNames = existingIndexes.map(idx => idx.name);
 
-    // Indexes to create (only if they don't exist)
     const indexesToCreate = [
-      {
-        key: { 'referralProgram.referredBy': 1 },
-        options: { name: 'referredBy_index', background: true }
-      },
-      {
-        key: { 'compliance.kycVerified': 1 },
-        options: { name: 'kycVerified_index', background: true }
-      },
-      {
-        key: { 'compliance.devices.ipAddress': 1 },
-        options: { name: 'ipAddress_index', background: true }
-      }
+      { key: { 'referralProgram.referredBy': 1 }, options: { name: 'referredBy_index', background: true } },
+      { key: { 'compliance.kycVerified': 1 }, options: { name: 'kycVerified_index', background: true } },
+      { key: { 'compliance.devices.ipAddress': 1 }, options: { name: 'ipAddress_index', background: true } }
     ];
 
     for (const { key, options } of indexesToCreate) {
       if (!existingIndexNames.includes(options.name)) {
         await User.collection.createIndex(key, options);
-        console.log(`Created index: ${options.name}`);
+        console.log(`✅ Created index: ${options.name}`);
       }
     }
 
-    console.log('User model indexes verified');
+    console.log('✅ User model indexes verified');
   } catch (error) {
-    console.error('Error setting up indexes:', error);
+    console.error('❌ Error setting up indexes:', error);
   }
 };
 
-// Run index setup when in production
-if (process.env.NODE_ENV === 'production') {
-  setupIndexes().catch(err => 
-    console.error('Failed to setup indexes:', err)
-  );
+// Run only locally, not on Netlify
+if (process.env.NODE_ENV === 'development') {
+  setupIndexes();
 }
 
 export default User;
