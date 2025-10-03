@@ -63,13 +63,14 @@ export default async function middleware(request) {
 
   try {
     // Skip middleware for API auth routes and static files
-    if (
-      apiAuthPrefix.some(prefix => pathname.startsWith(prefix)) ||
-      pathname.startsWith('/_next/') ||
-      pathname.includes('.') // Skip files with extensions
-    ) {
-      return NextResponse.next();
-    }
+  if (
+  apiAuthPrefix.some(prefix => pathname.startsWith(prefix)) ||
+  pathname.startsWith('/api/paystack/webhook') || // 👈 add this line
+  pathname.startsWith('/_next/') ||
+  pathname.includes('.') // Skip files with extensions
+) {
+  return NextResponse.next();
+}
 
    
 
@@ -137,6 +138,6 @@ export default async function middleware(request) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|sw.js|_next/webpack-hmr).*)',
+    '/((?!api/paystack/webhook|api/auth|_next/static|_next/image|favicon.ico|sw.js|_next/webpack-hmr).*)',
   ],
 };

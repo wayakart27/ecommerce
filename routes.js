@@ -1,9 +1,9 @@
 export const publicRoutes = [
   '/',
+  '/api/paystack/webhook',
   '/products',
   '/product/[id]',
   '/cart',
-   '/api/paystack/paystack-webhook',
 ];
 
 export const authRoutes = [
