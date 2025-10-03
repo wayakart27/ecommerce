@@ -13,16 +13,17 @@ const generateReferralCode = () => {
 =========================== */
 const pendingReferralSchema = new mongoose.Schema({
   referee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: [] },
   date: { type: Date, default: Date.now },
   hasPurchased: { type: Boolean, default: false },
   signupIp: String,
   deviceInfo: String
 }, { _id: false });
 
+
 const completedReferralSchema = new mongoose.Schema({
   referee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: [] },
   amount: Number,
   date: { type: Date, default: Date.now },
   status: { type: String, enum: ['pending', 'completed', 'rejected'], default: 'pending' },
