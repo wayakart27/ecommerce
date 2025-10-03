@@ -3,6 +3,7 @@ export const publicRoutes = [
   '/products',
   '/product/[id]',
   '/cart',
+   '/api/paystack/paystack-webhook',
 ];
 
 export const authRoutes = [
@@ -59,7 +60,6 @@ export const customerRoutes = [
 
 export const apiAuthPrefix = [
   '/api/auth',
-  '/api/paystack/paystack-webhook',
   '/api/users/*',
   '/api/two-factor/*',
 ];
