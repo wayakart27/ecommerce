@@ -42,6 +42,8 @@ export default async function handler(req, res) {
     }
 
     const event = JSON.parse(rawBody.toString());
+
+    console.log(event)
     
     // Handle charge success event
     if (event.event === 'charge.success') {
