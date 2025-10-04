@@ -138,7 +138,6 @@ export default async function middleware(request) {
 
 export const config = {
   matcher: [
-    // Match all routes EXCEPT the specified ones
-    '/((?!api/paystack/webhook|api/auth|_next/static|_next/image|favicon\\.ico|sw\\.js|_next/webpack-hmr).*)',
+    '/((?!api/auth/.*|api/users.*|api/paystack/webhook|_next/static|_next/image|favicon.ico|sw.js).*)',
   ],
 };
