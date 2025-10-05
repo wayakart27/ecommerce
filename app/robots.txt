@@ -1,0 +1,38 @@
+// app/robots.ts
+import type { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: '*',
+      allow: '/',
+      disallow: [
+        // Dashboard routes for all user types
+        '/dashboard/',
+
+        // Admin dashboard routes
+        '/dashboard/categories/',
+        '/dashboard/products/',
+        '/dashboard/delivery/',
+        '/dashboard/orders/',
+        '/dashboard/profit/',
+        '/dashboard/revenue/',
+        '/dashboard/referrals/',
+        '/dashboard/payout/',
+        '/dashboard/userDetails/',
+        '/dashboard/users/',
+        '/dashboard/new-arrivals/',
+        '/dashboard/settings/',
+        
+        
+        // Customer dashboard routes
+        '/dashboard/my-order/',
+        '/dashboard/my-referral/',
+        
+        // Other private routes
+        '/api/',
+      ],
+    },
+    sitemap: 'https://pureluxury.com.ng/sitemap.xml',
+  }
+}
